@@ -10,23 +10,30 @@
 
 // Set exposure time (time for LEDs to be on)
 const int exposureTimeUs = 2000;
-const int E1 = exposureTimeUs - 89;
-const int E2 = 1000/(11*2); // this is 1000 ms divided by framerate divided by 2, for fixation target exposure time time
 
-// set up some digital state variables
-boolean currentBusySignal = false;
-boolean previousBusySignal  = false;
+// Set empirical values
+const int fallTimeUs = 80;
+const int interFrameTimeUs = 1;
+const int readTimeMs = 74;
+
+// Calculate some delay times
+const int E1 = exposureTimeUs - fallTimeUs; // in us
+const int E2 = fallTimeUs + interFrameTimeUs; // in us
+const int E3 = readTimeMs - E1/1000 + 1; // in ms
+const int E4 = E3 - 10; // in ms
 
 // set up constant parameters
-const int busySignalPin = 0; // Camera's "busy" signal
+const int exposureSignalPin = 0; // Camera's "busy" signal
 const int LED1Pin = 1; 
 const int LED2Pin = 2;
 const int fixPin = 3;
 
-void setup() {
-  // initialize input/output pins:
-  pinModeFast(busySignalPin, INPUT);
 
+
+void setup() {
+  
+  // initialize input/output pins:
+  pinModeFast(exposureSignalPin, INPUT);
   pinModeFast(LED1Pin, OUTPUT);
   pinModeFast(LED2Pin, OUTPUT);
 
@@ -34,54 +41,46 @@ void setup() {
 
 void loop() {
   // Continuously poll the state of exposure signal (read and compare takes ~250 ns)
-  currentBusySignal = digitalReadFast(busySignalPin);
-  
-  if (currentBusySignal == HIGH) {
 
-    if (previousBusySignal == LOW) {
-      // Busy signal is high and last cycle was low => UP edge
-      // Start the LED exposure sequence
-  
-      // Start LED 1 ASAP--no delay
-      
-      // Turn LED 1 on
-      digitalWriteFast(LED1Pin,HIGH);
-      
-      // Some delay for proper exposure time
-      delayMicroseconds(exposureTimeUs);
-  
-      // Turn LED 1 off
-      digitalWriteFast(LED1Pin,LOW);
+  if digitalReadFast(exposureSignalPin) {
+    // Start the LED exposure sequence
 
-      // Some very short delay
-      delayMicroseconds(72);
-      
-      // Turn LED 2 on
-      digitalWriteFast(LED2Pin,HIGH);
-
-      // Some delay
-      delayMicroseconds(E1);
-  
-      // Turn LED 2 off
-      digitalWriteFast(LED1Pin,LOW);
-
-      // Some delay
-      delayMicroseconds(100);
-
-      // Turn fixation target on
-      digitalWriteFast(fixPin,HIGH);
-
-      // Calculated delay
-      delay(E2);
-      
-      // Turn fixation target off
-      digitalWriteFast(fixPin,LOW);
-
-    }
+    // Start LED 1 ASAP--no delay
+    digitalWriteFast(LED1Pin,HIGH);
     
+    // Some delay for proper exposure time
+    delayMicroseconds(E1);
+
+    // Turn LED 1 off
+    digitalWriteFast(LED1Pin,LOW);
+
+    // Some very short delay
+    delayMicroseconds(E2);
+    
+    // Turn LED 2 on
+    digitalWriteFast(LED2Pin,HIGH);
+
+    // Some delay
+    delayMicroseconds(E1);
+
+    // Turn LED 2 off
+    digitalWriteFast(LED1Pin,LOW);
+
+    // Some delay for the second exposure to complete
+    // 2nd exposure = read time (fixed)
+    delay(E3);
+
+    // Turn fixation target on
+    digitalWriteFast(fixPin,HIGH);
+
+    // Calculated delay
+    delay(E4);
+    
+    // Turn fixation target off
+    digitalWriteFast(fixPin,LOW);
+
   }
 
-  // Record this cycle's busy signal state
-  previousBusySignal = currentBusySignal;
+  // Return to continuous polling of exposure signal & wait for next sequence
   
 }
