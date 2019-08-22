@@ -9,12 +9,12 @@
 #include "digitalWriteFast.h"
 
 // Set exposure time (time for LEDs to be on)
-const int exposureTimeUs = 2000;
+const int exposureTimeUs = 5000;
 
 // Set empirical values
 const int fallTimeUs = 80;
 const int interFrameTimeUs = 1;
-const int readTimeMs = 74;
+const int readTimeMs = 45;
 
 // Calculate some delay times
 const int E1 = exposureTimeUs - fallTimeUs; // in us
@@ -64,9 +64,9 @@ void loop() {
     delayMicroseconds(E1);
 
     // Turn LED 2 off
-    digitalWriteFast(LED1Pin,LOW);
+    digitalWriteFast(LED2Pin,LOW);
 
-    // Some delay for the second exposure to complete
+    // Some (dark) delay for the second exposure to complete
     // 2nd exposure = read time (fixed)
     delay(E3);
 
