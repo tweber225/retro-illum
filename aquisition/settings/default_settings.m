@@ -5,57 +5,54 @@
 acqSettings.sessionStartTime = datestr(datetime);
 acqSettings.captureStartTime = 'none';
 
-% Sensor format: 0 for standard (1392x1040), 1 for "extended" (800x600)
-acqSettings.sensorFormat = 1;
+% Image Acquisition Toolbox Adapter name
+acqSettings.adapterName = 'gentl';
 
-% Pixel Rate (clock): 1 for 12 MHz, 2 for 24 MHz
-acqSettings.pixelRate = 2; 
+% Image size / ROI
+acqSettings.centerX = 'True';
+acqSettings.centerY = 'True';
+acqSettings.xOffset = 0;
+acqSettings.yOffset = 0;
+acqSettings.xSize = 1536;
+acqSettings.ySize = 1088;
+acqSettings.xDisplaySize = 768;
+acqSettings.yDisplaySize = 768;
 
-% Conversion Factor (gain): this is 100X the INVERSE gain in photoelectrons
-% (e-) per ADU count. So 100 means 1.00 e-/ADU, and 150 would be lower gain
-acqSettings.conversionFactor = 100; 
+% Consecutive frames to average for real-time display
+acqSettings.displayFrameAverage = 4;
 
-% Double Image mode enable (for short interframe time)
-acqSettings.doubleImageMode = 1;
+% Bit depth (for this application always 8-bit)
+acqSettings.bitDepth = 8;
+acqSettings.pixelFormat = 'Mono8';
 
-% IR Sensitivity enable
-acqSettings.IRSensitivity = 1;
-
-% Trigger mode: 0 for auto (i.e. freerun/max framerate)
-acqSettings.triggerMode = 0; 
-
-% Hot Pixel Correction Mode enable
-acqSettings.hotPixelCorrectionMode = 0;
-
-% Time stamping mode: 0 is off, 1 is binary in first few pixels, 2 is
-% binary and ASCII, 3 is ASCII only (doesn't work)
-acqSettings.timestampMode = 0; 
+% Gain
+acqSettings.gain = 0;
 
 % Number of frames to average for background
-acqSettings.numBackgroundFrames = 32;
+acqSettings.numBackgroundFrames = 64;
 
 % Number of frames to capture
-acqSettings.numCaptureFrames = 64;
+acqSettings.numCaptureFrames = 256;
 
 % Max memory to allocate in MB
-acqSettings.maxMemMB = 2000;
+acqSettings.maxMemMB = 4000;
 
-% Exposure time (see next setting for time base)
-acqSettings.exposureTime = 5;
+% Exposure time (in microseconds)
+acqSettings.exposureTime = 6170;
 
-% Exposure time base: 2 for ms, 1 for us, 0 for ns
-acqSettings.exposureTimeBase = 2;
-
-% Number of SDK buffers to use
-acqSettings.numBuffers = 4;
-
-% Note the whether a background has been acquired (not yet)
+% Note whether a background has been acquired (not yet)
 acqSettings.backgroundAcquired = 0;
 
-% Displays time waited for buffer (for debugging)
-acqSettings.dispBufferWaitTime = 1;
+% GPIO settings
+acqSettings.GPIO1Name = 'Line3';
+acqSettings.GPIO1LineMode = 'Output';
+acqSettings.GPIO1LineSource = 'ExposureActive';
+acqSettings.GPIO1LineInverter = 'True';
+acqSettings.GPIO2Name = 'Line4';
+acqSettings.GPIO2LineMode = 'Output';
+acqSettings.GPIO2LineSource = 'ExposureActive';
+acqSettings.GPIO2LineInverter = 'False';
 
-% Bandpass filter settings -- set to 0 to disable
-acqSettings.BPLow = .02;
-acqSettings.BPHigh = .0;
+% Number of refreshes to use in calculating the average refresh rate
+acqSettings.refreshRateFrames = 10;
 

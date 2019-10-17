@@ -1,27 +1,46 @@
 function handles = set_user_settings(handles)
 
-% Set parameters, use PCO's subfunctions when possible
-errorCode = calllib('PCO_CAM_SDK','PCO_SetSensorFormat',handles.out_ptr,handles.acqSettings.sensorFormat);
-pco_errdisp('PCO_SetSensorFormat',errorCode);
+% Set and then Get various parameters
 
-handles.subfunc.fh_set_pixelrate(handles.out_ptr,handles.acqSettings.pixelRate);
+% Set sensor size
+handles.src.CenterX = handles.acqSettings.centerX;
+handles.src.CenterY = handles.acqSettings.centerY;
+handles.vid.ROIPosition = [handles.acqSettings.xOffset handles.acqSettings.yOffset handles.acqSettings.xSize handles.acqSettings.ySize];
+handles.acqSettings.centerX = handles.src.CenterX;
+handles.acqSettings.centerY = handles.src.CenterY;
+updatedROI = handles.vid.ROIPosition;
+handles.acqSettings.xOffset = updatedROI(1);
+handles.acqSettings.yOffset = updatedROI(2);
+handles.acqSettings.xSize = updatedROI(3);
+handles.acqSettings.ySize = updatedROI(4);
 
-errorCode = calllib('PCO_CAM_SDK','PCO_SetConversionFactor',handles.out_ptr,handles.acqSettings.conversionFactor);
-pco_errdisp('PCO_SetConversionFactor',errorCode);
+% Set gain
+handles.src.Gain = handles.acqSettings.gain;
+handles.acqSettings.gain = handles.src.Gain;
 
-errorCode = calllib('PCO_CAM_SDK','PCO_SetDoubleImageMode',handles.out_ptr,handles.acqSettings.doubleImageMode);
-pco_errdisp('PCO_SetDoubleImageMode',errorCode);
+% Set exposure
+handles.src.ExposureTime = handles.acqSettings.exposureTime;
+handles.acqSettings.exposureTime = handles.src.ExposureTime;
 
-errorCode = calllib('PCO_CAM_SDK','PCO_SetIRSensitivity',handles.out_ptr,handles.acqSettings.IRSensitivity);
-pco_errdisp('PCO_SetIRSensitivity',errorCode);
+% Set GPIOs
+handles.src.LineSelector = handles.acqSettings.GPIO1Name;
+handles.src.LineMode = handles.acqSettings.GPIO1LineMode;
+handles.src.LineSource = handles.acqSettings.GPIO1LineSource;
+handles.src.LineInverter = handles.acqSettings.GPIO1LineInverter;
+if ~strcmp(handles.src.LineMode,handles.acqSettings.GPIO1LineMode) || ~strcmp(handles.src.LineSource,handles.acqSettings.GPIO1LineSource) || ~strcmp(handles.src.LineInverter,handles.acqSettings.GPIO1LineInverter)
+    error('Could not set GPIO 1 mode');
+end
 
-handles.subfunc.fh_set_triggermode(handles.out_ptr,handles.acqSettings.triggerMode);
+handles.src.LineSelector = handles.acqSettings.GPIO2Name;
+handles.src.LineMode = handles.acqSettings.GPIO2LineMode;
+handles.src.LineSource = handles.acqSettings.GPIO2LineSource;
+handles.src.LineInverter = handles.acqSettings.GPIO2LineInverter;
+if ~strcmp(handles.src.LineMode,handles.acqSettings.GPIO2LineMode) || ~strcmp(handles.src.LineSource,handles.acqSettings.GPIO2LineSource) || ~strcmp(handles.src.LineInverter,handles.acqSettings.GPIO2LineInverter)
+    error('Could not set GPIO 2 mode');
+end
 
-errorCode = calllib('PCO_CAM_SDK','PCO_SetHotPixelCorrectionMode',handles.out_ptr,handles.acqSettings.hotPixelCorrectionMode);
-pco_errdisp('PCO_SetHotPixelCorrectionMode',errorCode);
-
-errorCode = calllib('PCO_CAM_SDK', 'PCO_SetTimestampMode',handles.out_ptr,handles.acqSettings.timestampMode);
-pco_errdisp('PCO_SetTimestampMode',errorCode);  
-
-handles.subfunc.fh_set_exposure_times(handles.out_ptr,handles.acqSettings.exposureTime,handles.acqSettings.exposureTimeBase,0,2) % 2's indicate ms timebase
-
+% Turn off data throughput limit
+handles.src.DeviceLinkThroughputLimitMode = 'Off';
+if ~strcmp(handles.src.DeviceLinkThroughputLimitMode,'Off')
+    error('Could not turn off data throughput limit mode')
+end

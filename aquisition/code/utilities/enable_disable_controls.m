@@ -3,9 +3,6 @@ function handles = enable_disable_controls(handles,modeCalled,onOff)
 % collection modes
 
 
-% Sensor format
-set(handles.popupSensorFormat,'Enable',onOff);
-
 % Frames to capture can't be changed
 set(handles.textNumCaptureFrames,'Enable',onOff);
 
