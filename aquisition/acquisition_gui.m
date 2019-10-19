@@ -43,12 +43,16 @@ varargout{1} = handles.output;
 
 
 function retroIllumAcqGUI_CloseRequestFcn(hObject, eventdata, handles)
-% Close camera
-delete(handles.vid)
-clear handles.src handles.vid
-disp('Camera closed')
-% Close figure
-delete(hObject);
+try
+    delete(handles.vid) % Close camera
+    clear handles.src handles.vid
+    disp('Camera closed')
+    delete(hObject); % Close figure
+catch
+    disp('Error closing GUI')
+    delete(hObject); % Close figure
+end
+
 
 
 %% PREVIEW BUTTON
@@ -87,7 +91,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         flushdata(handles.vid);
                    
         % Show image
-        displayImg = scale_img_8bit(img(yCr,xCr,1,:));
+        displayImg = scale_img_8bit(img(yCr,xCr,1,:),handles.background(yCr,xCr),handles.acqSettings.backgroundAcquired,handles.acqSettings.filterSigma);
         set(handles.imgHandle,'CData',displayImg(:,:))
 
         % Update histograms
@@ -132,61 +136,60 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Disable controls
     handles = enable_disable_controls(handles,'background','off');
     
+    % Derive frame cropping indices
+    xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
+    yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
+    
+    % Allocate refresh rate array
+    refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
+    
     % Make MATLAB variable to store background frames
     frameSumRegister = zeros(handles.acqSettings.ySize,handles.acqSettings.xSize,'uint32');
     
-    % Start the camera
-    handles.subfunc.fh_start_camera(handles.out_ptr);
-    
-    % Set up request loop
-    for bufferIdx = 1:handles.acqSettings.numBuffers
-        errorCode = calllib('PCO_CAM_SDK','PCO_AddBufferEx',handles.out_ptr,0,0,handles.sBufNr(bufferIdx),handles.acqSettings.xSize,handles.acqSettings.ySize,handles.acqSettings.bitDepth);
-        pco_errdisp('PCO_AddBufferEx',errorCode);   
-    end 
-    
-    % Make buffer list structure
-    handles.bufferList = libstruct('PCO_Buflist');
-    handles.bufferList.sBufNr = handles.sBufNr(1);
-    bufferIdx = 1;
+    % Reset background acquired flag
+    handles.acqSettings.backgroundAcquired = 0;
     
     % Store guidata
     guidata(hObject,handles);
-    disp('Collecting Background')
-
+    
+    % Start the camera
+    start(handles.vid);
+    disp('Starting Background Capture')
+    
     % Run until number of background frames have been acquired
-    for frameIdx = 1:handles.acqSettings.numBackgroundFrames
+    frameIdx = 1;
+    while frameIdx < handles.acqSettings.numBackgroundFrames
         % Wait for buffer
-        handles.bufferList.sBufNr = handles.sBufNr(bufferIdx);
-        [errorCode,~,handles.bufferList] = calllib('PCO_CAM_SDK','PCO_WaitforBuffer',handles.out_ptr,1,handles.bufferList,500);
-        pco_errdisp('PCO_WaitforBuffer',errorCode);
-
-        % Read image data, make sure to transpose, add to register
-        img = get(handles.im_ptr(bufferIdx),'Value')';
-        frameSumRegister = frameSumRegister + uint32(img);
-        
-        % Re-add buffer
-        errorCode = calllib('PCO_CAM_SDK','PCO_AddBufferEx',handles.out_ptr,0,0,handles.sBufNr(bufferIdx),handles.acqSettings.xSize,handles.acqSettings.ySize,handles.acqSettings.bitDepth);
-        pco_errdisp('PCO_AddBufferEx',errorCode); 
-        
-        % Compute next buffer index
-        bufferIdx = mod(bufferIdx,handles.acqSettings.numBuffers)+1;
-        
-        % Show average image
-        if handles.acqSettings.doubleImageMode == 1
-            [~,~,diffImg] = compute_diff_img(frameSumRegister);
-            displayImg = scale_img_8bit(diffImg);
-            set(handles.imgHandle,'CData',displayImg)
-        else
-            displayImg = scale_img_8bit(frameSumRegister);
-            set(handles.imgHandle,'CData',displayImg)
+        framesAvail = handles.vid.FramesAvailable;
+        if framesAvail < handles.acqSettings.displayFrameAverage
+            continue % Continue if not enough frames ready
         end
+        
+        % Copy the available frames and sum into aray "frameSumRegister"
+        % min() function to make sure we don't get too many frames
+        lastFrameInSet = min(frameIdx+framesAvail-1,handles.acqSettings.numCaptureFrames);
+        img = getdata(handles.vid,framesAvail);
+        frameSumRegister = frameSumRegister + sum(uint32(img(:,:,1,1:(lastFrameInSet-frameIdx+1))),4,'native');
+        
+        % Show accumulated image
+        displayImg = scale_img_8bit(frameSumRegister(yCr,xCr),[],handles.acqSettings.backgroundAcquired,handles.acqSettings.filterSigma); 
+        set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update button string with progress
         set(hObject,'String',['Abort (' num2str(frameIdx) '/' num2str(handles.acqSettings.numBackgroundFrames) ' acquired)']);
         
-        if rem(bufferIdx,2) == 1 % Slow down display rate a bit
-            drawnow % Interrupt point, necessary for img update & breaking loop
-        end
+        % Update frame stats
+        refreshRateArray(1) = framesAvail;
+        currentRefreshRate = handles.acqSettings.resultingFrameRate/mean(refreshRateArray,'double');
+        refreshRateArray = circshift(refreshRateArray,[1 0]);
+        str = ['Refresh rate: ' num2str(round(10*currentRefreshRate)/10) ' Hz'];
+        set(handles.textDisplayFrameStats,'String',str);
+        
+        % Advance frameIdx counter
+        frameIdx = lastFrameInSet+1;
+        
+        drawnow % Interrupt point, necessary for img update & breaking loop
+        
         handles = guidata(hObject);
         
         if get(hObject,'Value') == 0
@@ -197,18 +200,11 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
 
     end
     
-    % Collection has ended
-    % Remove all pending buffers in the queue
-    errorCode = calllib('PCO_CAM_SDK','PCO_CancelImages',handles.out_ptr);
-    pco_errdisp('PCO_CancelImages',errorCode);   
-    [errorCode,~,handles.bufferList] = calllib('PCO_CAM_SDK','PCO_WaitforBuffer',handles.out_ptr,1,handles.bufferList,1000);
-    pco_errdisp('PCO_WaitforBuffer',errorCode);
-
-    % Stop the camera
-    handles.subfunc.fh_stop_camera(handles.out_ptr);
+    % Collection has ended: Stop the camera
+    stop(handles.vid);
     
-    % Average the frame sum register
-    handles.background = uint16(double(frameSumRegister)./handles.acqSettings.numBackgroundFrames);
+    % Average the frame sum register in double precision
+    handles.background = double(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
     
     % Switch back label
     if get(hObject,'Value') == 1 % Then we didn't abort
@@ -283,8 +279,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         captureFrames(:,:,1,frameIdx:lastFrameInSet) = img(:,:,1,1:(lastFrameInSet-frameIdx+1));
                
         % Show most recent image(s)
-        displayImg = scale_img_8bit(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail));
-        set(handles.imgHandle,'CData',displayImg(:,:))
+        displayImg = scale_img_8bit(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail),handles.background(yCr,xCr),handles.acqSettings.backgroundAcquired,handles.acqSettings.filterSigma);
+        set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
         handles.chan1Hist.Data = img(yCr,xCr,1,1); % only most recent frame

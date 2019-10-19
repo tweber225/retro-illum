@@ -29,16 +29,19 @@ acqSettings.pixelFormat = 'Mono8';
 acqSettings.gain = 0;
 
 % Number of frames to average for background
-acqSettings.numBackgroundFrames = 64;
+acqSettings.numBackgroundFrames = 256;
+
+% Display filter sigma (in pixels
+acqSettings.filterSigma = 25;
 
 % Number of frames to capture
 acqSettings.numCaptureFrames = 256;
 
 % Max memory to allocate in MB
-acqSettings.maxMemMB = 4000;
+acqSettings.maxMemMB = 8000;
 
 % Exposure time (in microseconds)
-acqSettings.exposureTime = 6170;
+acqSettings.exposureTime = 5845;
 
 % Note whether a background has been acquired (not yet)
 acqSettings.backgroundAcquired = 0;

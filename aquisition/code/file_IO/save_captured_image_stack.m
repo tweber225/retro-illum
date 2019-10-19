@@ -4,9 +4,9 @@ function save_captured_image_stack(captureStack,backgroundImg,saveDirectory)
 capturePath = [saveDirectory filesep 'raw.tif'];
 saveastiff(captureStack,capturePath);
 
-% If background is not all 0's, save background file
+% If background is not all 0's, save background file in single precision
 if sum(backgroundImg(:).^2) ~= 0
     backgroundPath = [saveDirectory filesep 'background.tif'];
-    saveastiff(backgroundImg,backgroundPath);
+    saveastiff(single(backgroundImg),backgroundPath);
 end
 
