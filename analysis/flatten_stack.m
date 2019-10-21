@@ -1,5 +1,5 @@
 function flatten_stack(captureDirectory)
-filtGamma = 50;
+filtSigma = 50;
 
 % Add paths
 userPathSplit = regexp(userpath,filesep,'split');   
@@ -33,7 +33,7 @@ for frameIdx = 1:numFrames
     correctedFrame = thisFrame./backgroundFrame;
     
     % Flatten field
-    flatFrame = correctedFrame./imgaussfilt(correctedFrame,filtGamma) - 1;
+    flatFrame = correctedFrame./imgaussfilt(correctedFrame,filtSigma) - 1;
     
     % Scale data
     signImg = sign(flatFrame);

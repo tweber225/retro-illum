@@ -41,7 +41,7 @@ acqSettings.numCaptureFrames = 256;
 acqSettings.maxMemMB = 8000;
 
 % Exposure time (in microseconds)
-acqSettings.exposureTime = 5845;
+acqSettings.exposureTime = 4000;
 
 % Note whether a background has been acquired (not yet)
 acqSettings.backgroundAcquired = 0;

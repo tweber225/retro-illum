@@ -27,7 +27,7 @@ function oimg = loadtiff(path)
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 % POSSIBILITY OF SUCH DAMAGE.
 
-tStart = tic;
+tic;
 warn_old = warning('off', 'all'); % To ignore unknown TIFF tag.
 
 %% Check directory and file existence
@@ -87,13 +87,14 @@ while true
     end
     iinfo(tfl).cid = tcl; % Cell number of this frame
     
-    if tiff.lastDirectory(), break; end;
+    if tiff.lastDirectory(), break; end
     tiff.nextDirectory();
 end
 
 %% Load image data
 if tcl == 1 % simple image (no cell)
-    for tfl = 1:tfl
+    % TDW EDIT-see below
+    for tfl = tfl:-1:1
         tiff.setDirectory(tfl);
         temp = tiff.read();
         if iinfo(tfl).complex
@@ -107,7 +108,10 @@ if tcl == 1 % simple image (no cell)
     end
 else % multiple image (multiple cell)
     oimg = cell(tcl, 1);
-    for tfl = 1:tfl
+    % TDW EDIT-Original line:
+    %for tfl = 1:tfl
+    % TDW EDIT-New line: 
+    for tfl = tfl:-1:1 % Count in descending order so variable oimg does not need to change size repeatedly in loop
         tiff.setDirectory(tfl);
         temp = tiff.read();
         if iinfo(tfl).complex
