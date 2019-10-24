@@ -31,7 +31,7 @@ handles.imgHandle = imshow(blankFrame);
 % Then update this with set(handles.imgHandle,'CData',YOUR8BITIMAGE)
 
 % Make dummy frame for background
-handles.background = zeros(handles.acqSettings.ySize,handles.acqSettings.xSize,'double');
+handles.background = ones(handles.acqSettings.ySize,handles.acqSettings.xSize,'double');
 
 % Render histograms
 handles.histogramBinEdges = linspace(0,2^double(handles.acqSettings.bitDepth),128+1);

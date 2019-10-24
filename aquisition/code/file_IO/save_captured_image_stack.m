@@ -1,54 +1,31 @@
-function save_captured_image_stack(captureStack,backgroundImg,saveDirectory)
-filtSigma = 50;
-scaleDownFactor = 0.75;
-numFrames = size(captureStack,3);
+function save_captured_image_stack(captureStack,calibFrame,saveDirectory,thumbOpts)
 
-%% Save the raw stack as .MAT file (binary)
-% (raw data isn't really viewable anyway so skipping tiff format is ok)
-capturePath = [saveDirectory filesep 'raw.mat'];
-save(capturePath,'captureStack');
 
-%% If background is not all 0's, save background file in single precision
+%% Save the raw stack as .dat file (binary)
+% (raw data isn't really directly viewable anyway, so not saving in tiff is fine)
+tic
+capturePath = [saveDirectory filesep 'raw.dat'];
+rawFileID = fopen(capturePath,'w');
+fwrite(rawFileID,captureStack(:));
+fclose(rawFileID);
+disp(['Wrote file: ' capturePath ' in ' num2str(toc) ' seconds'])
+
+%% If background is not all 1's, save calibration file in single precision
 % (this might be useful to have in tiff format)
-if sum(backgroundImg(:).^2) ~= 0
-    backgroundPath = [saveDirectory filesep 'background.tif'];
-    saveastiff(single(backgroundImg),backgroundPath);
+tic
+if sum((calibFrame(:)-1).^2) ~= 0
+    backgroundPath = [saveDirectory filesep 'calibration.tif'];
+    saveastiff(single(calibFrame),backgroundPath);
 end
+disp(['Wrote file: ' backgroundPath ' in ' num2str(toc) ' seconds'])
 
-%% Save "thumbnail" version of the stack (PRNU-corrected and flattened)
-flattenedStack = zeros(size(captureStack),'uint8');
-
-% Loop through frames
-for frameIdx = 1:numFrames
-    % Display progress
-    %disp(['Processing frame ' num2str(frameIdx) ' of ' num2str(numFrames)])
-    
-    % Select frame
-    thisFrame = double(captureStack(:,:,frameIdx));
-    
-    % Correct PRNU
-    correctedFrame = thisFrame./backgroundImg;
-    
-    % Flatten field
-    flatFrame = correctedFrame./imgaussfilt(correctedFrame,filtSigma) - 1;
-    
-    % Scale data
-    signImg = sign(flatFrame);
-    absImg = abs(flatFrame);
-    maxAbs = max(absImg(:));
-    scaledImg = absImg./maxAbs;
-    
-    % Give back sign and resize
-    resizedImg = imresize(scaledImg.*signImg,scaleDownFactor,'bilinear');
-    
-    % Convert to 8 bit
-    scaledImg8b = uint8(128 + 127*resizedImg);
-    
-    % Put into array
-    flattenedStack(:,:,frameIdx) = scaledImg8b;
-    
-end
-
+%% Save "thumbnail" version of the stack (cropped, PRNU-corr'ed & flattened)
+tic
+% Run thumbnail image processing
+stack8b = make_thumbnail_stack_GPU(captureStack,calibFrame,thumbOpts);
+processToc = toc;
 % Then save the flattened stack
-saveFileName = [saveDirectory filesep 'flattened.tif'];
-saveastiff(flattenedStack,saveFileName);
+saveFileName = [saveDirectory filesep 'thumbnail.tif'];
+saveastiff(stack8b,saveFileName);
+writeToc = toc;
+disp(['Processed thumbnail in ' num2str(processToc) ' sec and wrote file: ' saveFileName ' in ' num2str(writeToc) ' seconds'])

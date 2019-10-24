@@ -35,10 +35,10 @@ acqSettings.numBackgroundFrames = 256;
 acqSettings.filterSigma = 25;
 
 % Number of frames to capture
-acqSettings.numCaptureFrames = 256;
+acqSettings.numCaptureFrames = 1024;
 
 % Max memory to allocate in MB
-acqSettings.maxMemMB = 8000;
+acqSettings.maxMemMB = 4*1024; % 4 GB
 
 % Exposure time (in microseconds)
 acqSettings.exposureTime = 4000;
@@ -58,4 +58,11 @@ acqSettings.GPIO2LineInverter = 'False';
 
 % Number of refreshes to use in calculating the average refresh rate
 acqSettings.refreshRateFrames = 10;
+
+% Thumbnail image processing parameters
+acqSettings.thumbOptsFilterSigma = 25;
+acqSettings.thumbOptsScaleDownFactor = 0.75;
+acqSettings.thumbOptsXCropWidth = 1024;
+acqSettings.thumbOptsYCropWidth = 1024;
+acqSettings.thumbOptsMaxGPUVarSize = 2^30; % 1 GB
 

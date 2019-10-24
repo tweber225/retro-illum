@@ -321,9 +321,14 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         handles.acqSettings.captureDirectory = [strjoin(GUIPath(1:(end-2)),filesep) filesep 'data' filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
         mkdir(handles.acqSettings.captureDirectory)
         
-        % Save image raw stack and background image
+        % Save image raw stack, calibration image, and thumbnail preview
         set(hObject,'String','Saving Images');drawnow
-        save_captured_image_stack(squeeze(captureFrames),handles.background,handles.acqSettings.captureDirectory);
+        thumbOpts.filterSigma = handles.acqSettings.thumbOptsFilterSigma;
+        thumbOpts.scaleDownFactor = handles.acqSettings.thumbOptsScaleDownFactor;
+        thumbOpts.xCropWidth = handles.acqSettings.thumbOptsXCropWidth;
+        thumbOpts.yCropWidth = handles.acqSettings.thumbOptsYCropWidth;
+        thumbOpts.maxGPUVarSize = handles.acqSettings.thumbOptsMaxGPUVarSize;
+        save_captured_image_stack(squeeze(captureFrames),handles.background,handles.acqSettings.captureDirectory,thumbOpts);
         
         % Save settings used during capture
         set(hObject,'String','Saving Settings');drawnow
