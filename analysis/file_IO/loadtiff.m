@@ -34,10 +34,10 @@ warn_old = warning('off', 'all'); % To ignore unknown TIFF tag.
 path_parent = pwd;
 [pathstr, ~, ~] = fileparts(path);
 if ~isempty(pathstr) && ~exist(pathstr, 'dir')
-    error 'Directory is not exist.';
+    error 'Directory does not exist.';
 end
 if ~exist(path, 'file')
-    error 'File is not exist.';
+    error 'File does not exist.';
 end
 
 %% Open file

@@ -14,6 +14,10 @@ fid = fopen(fullfile(capturePath,'settings.txt'));
 % Loop through each entry
 for fieldIdx = 1:numel(fieldNames)
     switch dataTypes{fieldIdx}
+        case 'logical'
+            fieldFormat = '%*s %*s %d%*[^\n]';
+            singleSettingData = textscan(fid,fieldFormat,1);
+            settingsData{fieldIdx} = singleSettingData{1};
         case 'char'
             fieldFormat = '%*s %*s %[^\n]';
             singleSettingData = textscan(fid,fieldFormat,1);

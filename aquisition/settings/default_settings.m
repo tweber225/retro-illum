@@ -1,5 +1,6 @@
 % Default settings and notes on usage
-% All of this is for PCO Pixelfly USB with 
+
+% Save data directory
 
 % Note session start time
 acqSettings.sessionStartTime = datestr(datetime);
@@ -43,8 +44,8 @@ acqSettings.maxMemMB = 4*1024; % 4 GB
 % Exposure time (in microseconds)
 acqSettings.exposureTime = 4000;
 
-% Note whether a background has been acquired (not yet)
-acqSettings.backgroundAcquired = 0;
+% Note whether a calibration has been acquired (not yet)
+acqSettings.calibrationAcquired = false;
 
 % GPIO settings
 acqSettings.GPIO1Name = 'Line3';

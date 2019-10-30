@@ -16,8 +16,9 @@ tic
 if sum((calibFrame(:)-1).^2) ~= 0
     backgroundPath = [saveDirectory filesep 'calibration.tif'];
     saveastiff(single(calibFrame),backgroundPath);
+    disp(['Wrote file: ' backgroundPath ' in ' num2str(toc) ' seconds'])
 end
-disp(['Wrote file: ' backgroundPath ' in ' num2str(toc) ' seconds'])
+
 
 %% Save "thumbnail" version of the stack (cropped, PRNU-corr'ed & flattened)
 tic

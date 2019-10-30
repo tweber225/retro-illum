@@ -12,6 +12,8 @@ fileID = fopen([handles.acqSettings.captureDirectory filesep settingsFilename],'
 
 for settingIdx = 1:numel(fieldNamesArray)
     switch class(settingValuesArray{settingIdx})
+        case 'logical'            
+            fprintf(fileID,'%s logical %d\r\n',fieldNamesArray{settingIdx},settingValuesArray{settingIdx});
         case 'char'
             fprintf(fileID,'%s char %s\r\n',fieldNamesArray{settingIdx},settingValuesArray{settingIdx});
         case 'int32'

@@ -27,8 +27,9 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 % Add paths
-userPathSplit = regexp(userpath,filesep,'split');   
-addpath(genpath(fullfile(userPathSplit{1},userPathSplit{2},userPathSplit{3},'retro-illum','aquisition')));
+GUIPath = strsplit(mfilename('fullpath'),filesep); % Get full path
+GUIPath = strjoin(GUIPath(1:(end-1)),filesep); % Strip this file's name
+addpath(genpath(GUIPath)); % add subfolders
 
 % Run start up function
 handles = start_up(handles);
@@ -47,9 +48,11 @@ try
     delete(handles.vid) % Close camera
     clear handles.src handles.vid
     disp('Camera closed')
+    delete(gcp('nocreate'))
     delete(hObject); % Close figure
 catch
     disp('Error closing GUI')
+    delete(gcp('nocreate'))
     delete(hObject); % Close figure
 end
 
@@ -83,7 +86,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         % Wait for buffer
         framesAvail = handles.vid.FramesAvailable;
         if framesAvail < handles.acqSettings.displayFrameAverage
-            continue % Continue if not enough frames ready
+            continue % Continue (ie repeat from while) if not enough frames ready
         end
 
         % Take a peek at most recent data and flush the rest
@@ -91,7 +94,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         flushdata(handles.vid);
                    
         % Show image
-        displayImg = scale_img_8bit(img(yCr,xCr,1,:),handles.background(yCr,xCr),handles.acqSettings.backgroundAcquired,handles.acqSettings.filterSigma);
+        displayImg = scale_img_8bit(img(yCr,xCr,1,:),handles.calibFrame(yCr,xCr),handles.acqSettings.filterSigma);
         set(handles.imgHandle,'CData',displayImg(:,:))
 
         % Update histograms
@@ -147,7 +150,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     frameSumRegister = zeros(handles.acqSettings.ySize,handles.acqSettings.xSize,'uint32');
     
     % Reset background acquired flag
-    handles.acqSettings.backgroundAcquired = 0;
+    handles.acqSettings.calibrationAcquired = false;
     
     % Store guidata
     guidata(hObject,handles);
@@ -172,7 +175,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         frameSumRegister = frameSumRegister + sum(uint32(img(:,:,1,1:(lastFrameInSet-frameIdx+1))),4,'native');
         
         % Show accumulated image
-        displayImg = scale_img_8bit(frameSumRegister(yCr,xCr),[],handles.acqSettings.backgroundAcquired,handles.acqSettings.filterSigma); 
+        displayImg = scale_img_8bit(frameSumRegister(yCr,xCr),handles.calibFrame(yCr,xCr),handles.acqSettings.filterSigma); 
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update button string with progress
@@ -203,17 +206,17 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Collection has ended: Stop the camera
     stop(handles.vid);
     
-    % Average the frame sum register in double precision
-    handles.background = double(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
+    % Average the frame sum register in single precision
+    handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
     
     % Switch back label
     if get(hObject,'Value') == 1 % Then we didn't abort
         set(hObject,'String','Background Acquired')
-        handles.acqSettings.backgroundAcquired = 1;
+        handles.acqSettings.calibrationAcquired = true;
         set(hObject,'Value',0);
     else % Then we must have aborted
         set(hObject,'String','Background Aborted')
-        handles.acqSettings.backgroundAcquired = 0;
+        handles.acqSettings.calibrationAcquired = false;
     end
     handles = enable_disable_controls(handles,'background','on');
     guidata(hObject, handles);
@@ -279,7 +282,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         captureFrames(:,:,1,frameIdx:lastFrameInSet) = img(:,:,1,1:(lastFrameInSet-frameIdx+1));
                
         % Show most recent image(s)
-        displayImg = scale_img_8bit(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail),handles.background(yCr,xCr),handles.acqSettings.backgroundAcquired,handles.acqSettings.filterSigma);
+        displayImg = scale_img_8bit(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail),handles.calibFrame(yCr,xCr),handles.acqSettings.filterSigma);
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
@@ -317,18 +320,18 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         % Make new directory for acquisition
         GUIPath = strsplit(mfilename('fullpath'),filesep);
         
-        % Saves as date in YYYYMMDD \ time in HHMMSS[miliseconds] \(images)
+        % Saves as date in YYYYMMDD \ time in HHMMSS[miliseconds] 
         handles.acqSettings.captureDirectory = [strjoin(GUIPath(1:(end-2)),filesep) filesep 'data' filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
         mkdir(handles.acqSettings.captureDirectory)
         
         % Save image raw stack, calibration image, and thumbnail preview
-        set(hObject,'String','Saving Images');drawnow
+        %set(hObject,'String','Saving Images');drawnow
         thumbOpts.filterSigma = handles.acqSettings.thumbOptsFilterSigma;
         thumbOpts.scaleDownFactor = handles.acqSettings.thumbOptsScaleDownFactor;
         thumbOpts.xCropWidth = handles.acqSettings.thumbOptsXCropWidth;
         thumbOpts.yCropWidth = handles.acqSettings.thumbOptsYCropWidth;
         thumbOpts.maxGPUVarSize = handles.acqSettings.thumbOptsMaxGPUVarSize;
-        save_captured_image_stack(squeeze(captureFrames),handles.background,handles.acqSettings.captureDirectory,thumbOpts);
+        save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,thumbOpts);
         
         % Save settings used during capture
         set(hObject,'String','Saving Settings');drawnow

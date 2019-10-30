@@ -3,6 +3,8 @@ function handles = start_up(handles)
 % - load default settings into settings structure
 % - open camera
 
+% Start parallel pool
+parpool(2);
 
 % Load default settings store in handles structure
 default_settings
@@ -31,7 +33,7 @@ handles.imgHandle = imshow(blankFrame);
 % Then update this with set(handles.imgHandle,'CData',YOUR8BITIMAGE)
 
 % Make dummy frame for background
-handles.background = ones(handles.acqSettings.ySize,handles.acqSettings.xSize,'double');
+handles.calibFrame = ones(handles.acqSettings.ySize,handles.acqSettings.xSize,'single');
 
 % Render histograms
 handles.histogramBinEdges = linspace(0,2^double(handles.acqSettings.bitDepth),128+1);
@@ -39,6 +41,11 @@ handles.chan1Hist = histogram(handles.background,handles.histogramBinEdges,'Pare
 handles.hist1Axes.XLim = [handles.histogramBinEdges(1) handles.histogramBinEdges(end)];
 handles.hist1Axes.YScale = 'log';
 handles.hist1Axes.YLim = [1 10^5];
+
+% Note the directory
+GUIPath = strsplit(mfilename('fullpath'),filesep);
+GUIPath = strjoin(GUIPath(1:(end-3)),filesep);
+handles.acqSettings.GUIPath = GUIPath; 
 
 
 
