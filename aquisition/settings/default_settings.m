@@ -20,7 +20,7 @@ acqSettings.xDisplaySize = 768;
 acqSettings.yDisplaySize = 768;
 
 % Consecutive frames to average for real-time display
-acqSettings.displayFrameAverage = 4;
+acqSettings.displayFrameAverage = 9;
 
 % Bit depth (for this application always 8-bit)
 acqSettings.bitDepth = 8;
@@ -33,7 +33,7 @@ acqSettings.gain = 0;
 acqSettings.numBackgroundFrames = 256;
 
 % Display filter sigma (in pixels
-acqSettings.filterSigma = 25;
+acqSettings.filterSigma = 24;
 
 % Number of frames to capture
 acqSettings.numCaptureFrames = 1024;

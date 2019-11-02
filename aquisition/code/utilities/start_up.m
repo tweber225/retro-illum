@@ -37,7 +37,7 @@ handles.calibFrame = ones(handles.acqSettings.ySize,handles.acqSettings.xSize,'s
 
 % Render histograms
 handles.histogramBinEdges = linspace(0,2^double(handles.acqSettings.bitDepth),128+1);
-handles.chan1Hist = histogram(handles.background,handles.histogramBinEdges,'Parent',handles.hist1Axes);
+handles.chan1Hist = histogram(handles.calibFrame,handles.histogramBinEdges,'Parent',handles.hist1Axes);
 handles.hist1Axes.XLim = [handles.histogramBinEdges(1) handles.histogramBinEdges(end)];
 handles.hist1Axes.YScale = 'log';
 handles.hist1Axes.YLim = [1 10^5];

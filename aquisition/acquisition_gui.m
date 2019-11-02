@@ -71,6 +71,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
     yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
     
+    % Transfer cropped calibration frame to GPU
+    cropCalibGPU = gpuArray(handles.calibFrame(yCr,xCr));
+    
     % Allocate refresh rate array
     refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
     
@@ -92,10 +95,13 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         % Take a peek at most recent data and flush the rest
         img = peekdata(handles.vid,handles.acqSettings.displayFrameAverage);
         flushdata(handles.vid);
-                   
+        
         % Show image
-        displayImg = scale_img_8bit(img(yCr,xCr,1,:),handles.calibFrame(yCr,xCr),handles.acqSettings.filterSigma);
-        set(handles.imgHandle,'CData',displayImg(:,:))
+        tic
+        cropImgGPU = gpuArray(img(yCr,xCr,1,:));
+        displayImg = gather(reg_scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma));
+        disp(toc)
+        set(handles.imgHandle,'CData',displayImg)
 
         % Update histograms
         handles.chan1Hist.Data = img(yCr,xCr,1,1); % only show first frame
@@ -114,7 +120,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     end
     
     % If we reach here, the preview has ended: stop camera
-    stop(handles.vid);
+    stop(handles.vid); flushdata(handles.vid);
     
     % Switch back label, re-enable controls
     set(hObject,'String','Preview')
@@ -129,24 +135,27 @@ else
     
 end
 
-%% COLLECT BACKGROUND BUTTON
-function buttonCollectBackground_Callback(hObject, eventdata, handles)
+%% COLLECT CALIBRATION BUTTON
+function buttonCollectCalibration_Callback(hObject, eventdata, handles)
 if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Switch this button's label
     set(hObject,'String','Abort'); 
     
     % Disable controls
-    handles = enable_disable_controls(handles,'background','off');
+    handles = enable_disable_controls(handles,'calibration','off');
     
     % Derive frame cropping indices
     xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
     yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
     
+    % Transfer cropped calibration frame to GPU
+    cropCalibGPU = gpuArray(handles.calibFrame(yCr,xCr));
+    
     % Allocate refresh rate array
     refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
     
-    % Make MATLAB variable to store background frames
+    % Make MATLAB variable to store calibration frames (each summed into)
     frameSumRegister = zeros(handles.acqSettings.ySize,handles.acqSettings.xSize,'uint32');
     
     % Reset background acquired flag
@@ -157,7 +166,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Start the camera
     start(handles.vid);
-    disp('Starting Background Capture')
+    disp('Starting Calibration Capture')
     
     % Run until number of background frames have been acquired
     frameIdx = 1;
@@ -175,7 +184,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         frameSumRegister = frameSumRegister + sum(uint32(img(:,:,1,1:(lastFrameInSet-frameIdx+1))),4,'native');
         
         % Show accumulated image
-        displayImg = scale_img_8bit(frameSumRegister(yCr,xCr),handles.calibFrame(yCr,xCr),handles.acqSettings.filterSigma); 
+        cropImgGPU = gpuArray(frameSumRegister(yCr,xCr));
+        displayImg = gather(scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma)); 
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update button string with progress
@@ -204,27 +214,27 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     end
     
     % Collection has ended: Stop the camera
-    stop(handles.vid);
+    stop(handles.vid); flushdata(handles.vid);
     
     % Average the frame sum register in single precision
     handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
     
     % Switch back label
     if get(hObject,'Value') == 1 % Then we didn't abort
-        set(hObject,'String','Background Acquired')
+        set(hObject,'String','Calibration Acquired')
         handles.acqSettings.calibrationAcquired = true;
         set(hObject,'Value',0);
     else % Then we must have aborted
-        set(hObject,'String','Background Aborted')
+        set(hObject,'String','Calibration Aborted')
         handles.acqSettings.calibrationAcquired = false;
     end
-    handles = enable_disable_controls(handles,'background','on');
+    handles = enable_disable_controls(handles,'calibration','on');
     guidata(hObject, handles);
     
 else
-    disp('Aborting background collection')
+    disp('Aborting calibration collection')
     set(hObject,'Value',0);
-    handles = enable_disable_controls(handles,'background','on');
+    handles = enable_disable_controls(handles,'calibration','on');
     guidata(hObject, handles);
 end
 
@@ -314,9 +324,10 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     end
     
     % Collection has ended: stop the camera
-    stop(handles.vid);
+    stop(handles.vid); flushdata(handles.vid);
     
     if get(hObject,'Value') == 1 % Save the capture data and metadata
+        set(hObject,'String','Saving Data');drawnow
         % Make new directory for acquisition
         GUIPath = strsplit(mfilename('fullpath'),filesep);
         
@@ -331,11 +342,11 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         thumbOpts.xCropWidth = handles.acqSettings.thumbOptsXCropWidth;
         thumbOpts.yCropWidth = handles.acqSettings.thumbOptsYCropWidth;
         thumbOpts.maxGPUVarSize = handles.acqSettings.thumbOptsMaxGPUVarSize;
-        save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,thumbOpts);
+        %save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,thumbOpts);
+        parfeval(@save_captured_image_stack,0,squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,thumbOpts);
         
         % Save settings used during capture
-        set(hObject,'String','Saving Settings');drawnow
-        handles = save_settings(handles);
+        parfeval(@save_settings,0,handles.acqSettings);
         
         set(hObject,'String','Capture (Last: Success)');drawnow;
         

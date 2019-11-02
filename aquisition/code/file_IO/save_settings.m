@@ -1,14 +1,14 @@
-function handles = save_settings(handles)
+function save_settings(acqSettings)
 % Function to automatically save all the settings in settings structure.
 % Prints the field name, the intended type of data, and the value converted
 % into string characters, one line per field, in a text file.
 
-fieldNamesArray = fieldnames(handles.acqSettings);
-settingValuesArray = struct2cell(handles.acqSettings);
+fieldNamesArray = fieldnames(acqSettings);
+settingValuesArray = struct2cell(acqSettings);
 
 settingsFilename = 'settings.txt';
 
-fileID = fopen([handles.acqSettings.captureDirectory filesep settingsFilename],'a');
+fileID = fopen([acqSettings.captureDirectory filesep settingsFilename],'a');
 
 for settingIdx = 1:numel(fieldNamesArray)
     switch class(settingValuesArray{settingIdx})

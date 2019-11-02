@@ -1,5 +1,5 @@
 function handles = enable_disable_controls(handles,modeCalled,onOff)
-% Disable some of the controls during preview, capture, background
+% Disable some of the controls during preview, capture, calibration
 % collection modes
 
 
@@ -8,13 +8,13 @@ set(handles.textNumCaptureFrames,'Enable',onOff);
 
 switch modeCalled
     case 'capture'
-        set(handles.buttonCollectBackground,'Enable',onOff);
+        set(handles.buttonCollectCalibration,'Enable',onOff);
         set(handles.buttonPreview,'Enable',onOff);
         
     case 'preview'
-        set(handles.buttonCollectBackground,'Enable',onOff);
+        set(handles.buttonCollectCalibration,'Enable',onOff);
         
-    case 'background'
+    case 'calibration'
         set(handles.buttonPreview,'Enable',onOff);
         set(handles.buttonCapture,'Enable',onOff);
         

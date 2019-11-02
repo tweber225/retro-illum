@@ -1,22 +1,22 @@
-function scaledImg8b = scale_img_8bit(img,calibImg,filterSigma)
+function scaledImg8b = scale_img_8bit(imgGPU,calibImgGPU,filterSigma)
 % Function to perform a bit of light image processing for display
+% imgGPU, calibImgGPU should already be on the GPU, ie of class gpuArray
 
 % Sum in 16 bit, then convert to single (slightly fast than summing in
 % single precision)
-sumImg = single(sum(uint16(img),4,'native'));
+sumImg = single(sum(uint16(imgGPU),4,'native'));
 
 % Divide by calibration to even out PRNU (both in single precision)
-sumImg = sumImg./calibImg;
+sumImg = sumImg./calibImgGPU;
 
 % Perform field flattening (to remove low spatial frequencies)
-filtImg = sumImg./imgaussfilt(sumImg,filterSigma) - 1; % and also center around 0
+%filtImg = sumImg./imgaussfilt(sumImg,filterSigma) - 1; % and also center around 0
+filtImg = arrayfun(@flatten_field,sumImg,imgaussfilt(sumImg,filterSigma));
 
-% Perform bipolar gamma operation
-signImg = sign(filtImg);
-absGammaImg = abs(filtImg);
-
-maxAbsGamma = max(absGammaImg(:));
-scaledGammaImg = absGammaImg./maxAbsGamma;
+% Perform scaling operation
+absImg = abs(filtImg);
+maxAbs = max(absImg(:));
+scaledImg = filtImg./maxAbs;
 
 % Convert to 8 bit
-scaledImg8b = uint8(128 + 127*scaledGammaImg.*signImg);
+scaledImg8b = arrayfun(@scale_single_to_uint8,scaledImg);
