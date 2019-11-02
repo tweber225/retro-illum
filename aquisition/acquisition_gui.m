@@ -81,8 +81,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     guidata(hObject,handles);
     
     % Start the camera
-    start(handles.vid)
-    disp('Starting Preview')
+    start(handles.vid); disp('Starting Preview')
     
     % Loop until the button is no longer pressed
     while get(hObject,'Value')    
@@ -263,6 +262,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
     yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
     
+    % Transfer cropped calibration frame to GPU
+    cropCalibGPU = gpuArray(handles.calibFrame(yCr,xCr));
+    
     % Allocate refresh rate array
     refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
     
@@ -273,8 +275,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     guidata(hObject,handles);
     
     % Start the camera
-    start(handles.vid);
-    disp('Starting Capture')
+    start(handles.vid); disp('Starting Capture')
     
     % Run until number of capture frames have been acquired
     frameIdx = 1;
@@ -292,7 +293,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         captureFrames(:,:,1,frameIdx:lastFrameInSet) = img(:,:,1,1:(lastFrameInSet-frameIdx+1));
                
         % Show most recent image(s)
-        displayImg = scale_img_8bit(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail),handles.calibFrame(yCr,xCr),handles.acqSettings.filterSigma);
+        cropImgGPU = gpuArray(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail));
+        displayImg = gather(scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma));
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
@@ -328,28 +330,19 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     
     if get(hObject,'Value') == 1 % Save the capture data and metadata
         set(hObject,'String','Saving Data');drawnow
-        % Make new directory for acquisition
-        GUIPath = strsplit(mfilename('fullpath'),filesep);
+        % Formulate datapath for this capture--saves as date in YYYYMMDD \
+        % time in HHMMSS[ms][ms][ms]-- and make directory
+        handles.acqSettings.captureDirectory = [handles.acqSettings.dataPath filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
+        mkdir(handles.acqSettings.captureDirectory);
         
-        % Saves as date in YYYYMMDD \ time in HHMMSS[miliseconds] 
-        handles.acqSettings.captureDirectory = [strjoin(GUIPath(1:(end-2)),filesep) filesep 'data' filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
-        mkdir(handles.acqSettings.captureDirectory)
+        % In parallel: save raw stack, calibration, thumbnail preview       
+        parfeval(@save_captured_image_stack,0,squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,handles.thumbOpts);
         
-        % Save image raw stack, calibration image, and thumbnail preview
-        %set(hObject,'String','Saving Images');drawnow
-        thumbOpts.filterSigma = handles.acqSettings.thumbOptsFilterSigma;
-        thumbOpts.scaleDownFactor = handles.acqSettings.thumbOptsScaleDownFactor;
-        thumbOpts.xCropWidth = handles.acqSettings.thumbOptsXCropWidth;
-        thumbOpts.yCropWidth = handles.acqSettings.thumbOptsYCropWidth;
-        thumbOpts.maxGPUVarSize = handles.acqSettings.thumbOptsMaxGPUVarSize;
-        %save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,thumbOpts);
-        parfeval(@save_captured_image_stack,0,squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,thumbOpts);
-        
-        % Save settings used during capture
+        % In parallel: save settings used during capture
         parfeval(@save_settings,0,handles.acqSettings);
+        %save_settings(handles.acqSettings)
         
         set(hObject,'String','Capture (Last: Success)');drawnow;
-        
         disp(['Successfully saved file at ' handles.acqSettings.captureDirectory])
     else
         % Don't do saving b/c the capture was aborted

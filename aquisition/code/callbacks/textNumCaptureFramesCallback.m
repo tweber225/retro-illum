@@ -9,7 +9,7 @@ if newVal < 1
 end
 
 % Check also that we're not going to allocating too much memory
-frameMB = 2*double(handles.acqSettings.xSize)*double(handles.acqSettings.ySize)/2^20;
+frameMB = double(handles.acqSettings.xSize)*double(handles.acqSettings.ySize)/2^20;
 stackMB = newVal*frameMB;
 
 if stackMB > handles.acqSettings.maxMemMB

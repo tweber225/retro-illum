@@ -47,6 +47,9 @@ GUIPath = strsplit(mfilename('fullpath'),filesep);
 GUIPath = strjoin(GUIPath(1:(end-3)),filesep);
 handles.acqSettings.GUIPath = GUIPath; 
 
+% Make the thumbnail options structure
+handles.thumbOpts = make_thumb_opts_struct(acqSettings);
+
 
 
 

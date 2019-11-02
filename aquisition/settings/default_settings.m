@@ -1,6 +1,7 @@
 % Default settings and notes on usage
 
 % Save data directory
+acqSettings.dataPath = 'C:\Users\MertzLabAdmin\retro-illum\data';
 
 % Note session start time
 acqSettings.sessionStartTime = datestr(datetime);
@@ -39,7 +40,7 @@ acqSettings.filterSigma = 24;
 acqSettings.numCaptureFrames = 1024;
 
 % Max memory to allocate in MB
-acqSettings.maxMemMB = 4*1024; % 4 GB
+acqSettings.maxMemMB = 8*1024; % 8 GB
 
 % Exposure time (in microseconds)
 acqSettings.exposureTime = 4000;
