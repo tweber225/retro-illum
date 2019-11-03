@@ -66,16 +66,12 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Disable controls
     handles = enable_disable_controls(handles,'preview','off');
-    
-    % Derive frame cropping indices
-    xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
-    yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
-    
+       
     % Transfer cropped calibration frame to GPU
-    cropCalibGPU = gpuArray(handles.calibFrame(yCr,xCr));
-    
+    cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
+
     % Allocate refresh rate array
-    refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
+    refreshRateArray = 1024*ones(handles.acqSettings.refreshRateFrames,1,'uint32');
     
     % Store guidata
     guidata(hObject,handles);
@@ -97,13 +93,13 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         
         % Show image
         tic
-        cropImgGPU = gpuArray(img(yCr,xCr,1,:));
-        displayImg = gather(reg_scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma));
+        cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
+        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma);
         disp(toc)
         set(handles.imgHandle,'CData',displayImg)
 
         % Update histograms
-        handles.chan1Hist.Data = img(yCr,xCr,1,1); % only show first frame
+        handles.chan1Hist.Data = img(handles.yCr,handles.xCr,1,1); % only show first frame
 
         % Update frame stats
         refreshRateArray(1) = framesAvail;
@@ -115,7 +111,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         drawnow; % Interrupt point, necessary for img update & breaking loop
 
         handles = guidata(hObject); 
-
+        
     end
     
     % If we reach here, the preview has ended: stop camera
@@ -135,7 +131,7 @@ else
 end
 
 %% COLLECT CALIBRATION BUTTON
-function buttonCollectCalibration_Callback(hObject, eventdata, handles)
+function buttonCollectCalibration_Callback(hObject, ~, handles)
 if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Switch this button's label
@@ -144,15 +140,11 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Disable controls
     handles = enable_disable_controls(handles,'calibration','off');
     
-    % Derive frame cropping indices
-    xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
-    yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
-    
     % Transfer cropped calibration frame to GPU
-    cropCalibGPU = gpuArray(handles.calibFrame(yCr,xCr));
+    cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
     
     % Allocate refresh rate array
-    refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
+    refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint32');
     
     % Make MATLAB variable to store calibration frames (each summed into)
     frameSumRegister = zeros(handles.acqSettings.ySize,handles.acqSettings.xSize,'uint32');
@@ -183,7 +175,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         frameSumRegister = frameSumRegister + sum(uint32(img(:,:,1,1:(lastFrameInSet-frameIdx+1))),4,'native');
         
         % Show accumulated image
-        cropImgGPU = gpuArray(frameSumRegister(yCr,xCr));
+        cropImgGPU = gpuArray(frameSumRegister(handles.yCr,handles.xCr));
         displayImg = gather(scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma)); 
         set(handles.imgHandle,'CData',displayImg(:,:));
         
@@ -239,7 +231,7 @@ end
 
 
 %% --- CAPTURE BUTTON ---
-function buttonCapture_Callback(hObject, eventdata, handles)
+function buttonCapture_Callback(hObject, ~, handles)
 if get(handles.buttonPreview,'Value') == 1 % If preview is on ...
     % Turn off the preview
     set(handles.buttonPreview,'Value',0); % Setting this to 0 will initiate termination of Preview loop
@@ -256,21 +248,14 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     set(hObject,'String','Abort');
     
     % Disable controls
-    handles = enable_disable_controls(handles,'capture','off');
-    
-    % Derive frame cropping indices
-    xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2);
-    yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
+    handles = enable_disable_controls(handles,'capture','off');   
     
     % Transfer cropped calibration frame to GPU
-    cropCalibGPU = gpuArray(handles.calibFrame(yCr,xCr));
+    cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
     
     % Allocate refresh rate array
-    refreshRateArray = 255*ones(handles.acqSettings.refreshRateFrames,1,'uint8');
-    
-    % Make MATLAB variable to store captured frames
-    captureFrames = zeros(handles.acqSettings.ySize,handles.acqSettings.xSize,1,handles.acqSettings.numCaptureFrames,'uint8');
-    
+    refreshRateArray = ones(handles.acqSettings.refreshRateFrames,1,'uint32');
+       
     % Store guidata
     guidata(hObject,handles);
     
@@ -278,40 +263,33 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     start(handles.vid); disp('Starting Capture')
     
     % Run until number of capture frames have been acquired
-    frameIdx = 1;
-    while frameIdx < handles.acqSettings.numCaptureFrames
-        % Wait for buffer
-        framesAvail = handles.vid.FramesAvailable;
-        if framesAvail < handles.acqSettings.displayFrameAverage
-            continue % Continue if not enough frames ready
+    while handles.vid.FramesAvailable < handles.acqSettings.numCaptureFrames
+        % Check that enough frames are available
+        frameIdx = handles.vid.FramesAvailable;
+        if frameIdx < handles.acqSettings.displayFrameAverage
+            continue
         end
+        
+        % Peek at the most recent frames up to display frame average #
+        img = peekdata(handles.vid,handles.acqSettings.displayFrameAverage);
 
-        % Copy the available frames into user array, "captureFrames"
-        % min() function to make sure we don't overfill array with frames
-        lastFrameInSet = min(frameIdx+framesAvail-1,handles.acqSettings.numCaptureFrames);
-        img = getdata(handles.vid,framesAvail);
-        captureFrames(:,:,1,frameIdx:lastFrameInSet) = img(:,:,1,1:(lastFrameInSet-frameIdx+1));
-               
-        % Show most recent image(s)
-        cropImgGPU = gpuArray(img(yCr,xCr,1,(framesAvail-handles.acqSettings.displayFrameAverage+1):framesAvail));
-        displayImg = gather(scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma));
+        % Show most recent images (registed and averaged on GPU)
+        cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
+        displayImg = gather(reg_scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma));
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
-        handles.chan1Hist.Data = img(yCr,xCr,1,1); % only most recent frame
+        handles.chan1Hist.Data = img(handles.yCr,handles.xCr,1,1); % only most recent frame
         
         % Update button string with progress
         set(hObject,'String',['Abort (' num2str(frameIdx) '/' num2str(handles.acqSettings.numCaptureFrames) ' acquired)']);
         
         % Update frame stats
-        refreshRateArray(1) = framesAvail;
-        currentRefreshRate = handles.acqSettings.resultingFrameRate/mean(refreshRateArray,'double');
-        refreshRateArray = circshift(refreshRateArray,[1 0]);
+        refreshRateArray(handles.acqSettings.refreshRateFrames) = frameIdx;
+        currentRefreshRate = handles.acqSettings.resultingFrameRate/mean(diff(refreshRateArray),'double');
+        refreshRateArray = circshift(refreshRateArray,-1);
         str = ['Refresh rate: ' num2str(round(10*currentRefreshRate)/10) ' Hz'];
         set(handles.textDisplayFrameStats,'String',str);
-        
-        % Advance frameIdx counter
-        frameIdx = lastFrameInSet+1;
         
         drawnow % Interrupt point, necessary for img update & breaking loop
 
@@ -325,8 +303,10 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
 
     end
     
-    % Collection has ended: stop the camera
-    stop(handles.vid); flushdata(handles.vid);
+    % Collection has ended: stop the camera, retrieve data, flush the rest
+    stop(handles.vid); 
+    captureFrames = getdata(handles.vid,handles.acqSettings.numCaptureFrames);
+    flushdata(handles.vid);
     
     if get(hObject,'Value') == 1 % Save the capture data and metadata
         set(hObject,'String','Saving Data');drawnow

@@ -59,7 +59,7 @@ acqSettings.GPIO2LineSource = 'ExposureActive';
 acqSettings.GPIO2LineInverter = 'False';
 
 % Number of refreshes to use in calculating the average refresh rate
-acqSettings.refreshRateFrames = 10;
+acqSettings.refreshRateFrames = 16;
 
 % Thumbnail image processing parameters
 acqSettings.thumbOptsFilterSigma = 25;

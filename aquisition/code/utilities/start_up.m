@@ -22,6 +22,8 @@ handles = set_GUI_options(handles);
 % Get derived parameters
 handles.acqSettings.resultingFrameRate = handles.src.ResultingFrameRate;
 handles.acqSettings.sensorReadoutTime = handles.src.SensorReadoutTime;
+handles.xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2); % Cropping of displayed frames
+handles.yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
 
 % Update displays
 handles = update_displays(handles);

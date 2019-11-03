@@ -30,7 +30,7 @@ handles.acqSettings.cameraSerialNumber = handles.src.DeviceSerialNumber;
 handles.acqSettings.cameraName = [handles.acqSettings.cameraVendorName ' ' handles.acqSettings.cameraModelName ' (SN:' handles.acqSettings.cameraSerialNumber ')'];
 
 % Set number of triggers to infinite
-handles.vid.TriggerRepeat = Inf;
+handles.vid.TriggerRepeat = inf;
 if handles.vid.TriggerRepeat ~= inf
     error('Failed to set trigger')
 end

@@ -20,30 +20,29 @@ xPowSpec = conj(imgFT(:,:,:,middleFrame)).*imgFT;
 xCorrs = abs(ifft2(xPowSpec));
 
 % Step 4: set 1,1 to 0 to avoid static component
-xCorrs(1,1,:,:) = 0;
+%xCorrs(1,1,:,:) = 0;
 
 % Step 5: Locate peaks
 [~,xPkIdx] = max(max(xCorrs,[],1),[],2);
 [~,yPkIdx] = max(max(xCorrs,[],2),[],1);
 
-% Step 6: Shift each frame and sum
-sumImg = uint16(imgGPU(:,:,:,1)); % store first (template frame)
+% Step 6: Shift each frame and sum in single precision
+sumImg = correctedImg(:,:,:,1); % store first (template frame)
 for fIdx = 1:numFrames
     if fIdx == middleFrame
         continue
     end
-    sumImg = sumImg + circshift(uint16(imgGPU(:,:,:,fIdx)),[yPkIdx(fIdx)-1,xPkIdx(fIdx)-1]);
+    sumImg = sumImg + circshift(correctedImg(:,:,:,fIdx),[-yPkIdx(fIdx)+1,-xPkIdx(fIdx)+1]);
 end
 
-% Cast to single and perform field flattening (to remove low spatial frequencies)
-sumImgSingle = single(sumImg);
-filtImg = arrayfun(@flatten_field,sumImgSingle,imgaussfilt(sumImgSingle,filterSigma));
+% Perform field flattening (to remove low spatial frequencies)
+filtImg = arrayfun(@flatten_field,sumImg,imgaussfilt(sumImg,filterSigma));
 
 % Perform scaling operation
 absImg = abs(filtImg);
 maxAbs = max(absImg(:));
 scaledImg = filtImg./maxAbs;
 
-% Convert to 8 bit
-scaledImg8b = arrayfun(@scale_single_to_uint8,scaledImg);
+% Convert to 8 bit and bring back to host
+scaledImg8b = gather(arrayfun(@scale_single_to_uint8,scaledImg));
 
