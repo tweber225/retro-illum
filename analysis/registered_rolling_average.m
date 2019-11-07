@@ -9,8 +9,6 @@ addpath(genpath(analysisFilePath)); % add subfolders
 % Load analysis settings (makes a structure "analysisSettings")
 analysis_settings;
 MAOrd = analysisSettings.MAOrder; % Shorten this
-padIFTX = analysisSettings.subPixelRegFactor*analysisSettings.regXCrop;
-padIFTY = analysisSettings.subPixelRegFactor*analysisSettings.regYCrop;
 numFrameAvg = MAOrd*2 + 1;
 
 % Check that the file doesn't exist
@@ -86,28 +84,26 @@ for cIdx = 1:numChunks
         % for second term, shift 3rd dimension by order number
         xPowSpec = chunkFT.*circshift(conj(chunkFT),-regOrder,3); 
 
-        % Normalize the cross power spectrum and filter bad frequencies
-        xPowSpec = (xPowSpec./abs(xPowSpec)).*donutFiltGPU; % use arrayfun here?
+        % Filter out of band frequencies with donut filter
+        xPowSpec = xPowSpec.*donutFiltGPU; % use arrayfun here?
 
-        % IFFT2 back into real domain - could make this its own func
-        xCorrOrder = zeros(padIFTY,padIFTX,numFrames,'single','gpuArray');
-        xNumChunks = analysisSettings.subPixelRegFactor^2;
-        xNumFramesInChunk = ceil(numFrames/xNumChunks);
-        for xChunkIdx = 1:xNumChunks
-            xStart = 1 + (xChunkIdx-1)*xNumFramesInChunk;
-            xEnd = min(numFrames,xChunkIdx*xNumFramesInChunk);
-            xCorrOrder(:,:,xStart:xEnd) = abs(ifft2(xPowSpec(:,:,xStart:xEnd),padIFTY,padIFTX));
-        end
+        % IFFT2 back into real domain
+        xCorrOrder = abs(ifft2(xPowSpec));
 
         % Set 1,1 to 0 to avoid the static component
         xCorrOrder(1,1,:) = 0;
+        
+        % Set overly-large shifts to 0
+        maxShiftThisOrder = MAOrd*analysisSettings.maxShiftPerFrame;
+        xCorrOrder((1+maxShiftThisOrder):(analysisSettings.regYCrop-maxShiftThisOrder),:,:) = 0;
+        xCorrOrder(:,(1+maxShiftThisOrder):(analysisSettings.regXCrop-maxShiftThisOrder),:) = 0;
         
         % Find peak of cross correlation
         [~,idxsX] = max(max(xCorrOrder,[],1),[],2);
         [~,idxsY] = max(max(xCorrOrder,[],2),[],1);
         clear xCorrOrder
-        shiftsX = arrayfun(@idx_to_real_shift,squeeze(idxsX),analysisSettings.regXCrop,analysisSettings.subPixelRegFactor);
-        shiftsY = arrayfun(@idx_to_real_shift,squeeze(idxsY),analysisSettings.regYCrop,analysisSettings.subPixelRegFactor);
+        shiftsX = arrayfun(@idx_to_real_shift,squeeze(idxsX),analysisSettings.regXCrop);
+        shiftsY = arrayfun(@idx_to_real_shift,squeeze(idxsY),analysisSettings.regYCrop);
 
         % With shifts X and Y, circshift frames before and after selected frame
         for frIdx = (MAOrd+1):(numFrames-MAOrd)
@@ -134,6 +130,9 @@ end % end chunk looping
 disp(['Processing time: ' num2str(toc) ' sec']);
 
 % Save the averaged frames
+if numel(avgFrames)*2 > 3.8*2^30
+    avgFrames = avgFrames(:,:,1:2:end); % decimates frames a bit
+end
 saveastiff(avgFrames,saveFileName);
 
 

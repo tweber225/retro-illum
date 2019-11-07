@@ -1,7 +1,7 @@
 % Default settings and notes on usage
 
 % Save data directory
-acqSettings.dataPath = 'C:\Users\MertzLabAdmin\retro-illum\data';
+acqSettings.dataPath = 'T:\retro-illum';
 
 % Note session start time
 acqSettings.sessionStartTime = datestr(datetime);
@@ -43,7 +43,7 @@ acqSettings.numCaptureFrames = 1024;
 acqSettings.maxMemMB = 8*1024; % 8 GB
 
 % Exposure time (in microseconds)
-acqSettings.exposureTime = 4000;
+acqSettings.exposureTime = 5845;
 
 % Note whether a calibration has been acquired (not yet)
 acqSettings.calibrationAcquired = false;

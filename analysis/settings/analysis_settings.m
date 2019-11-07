@@ -9,8 +9,8 @@ analysisSettings.maxSmoothingSpan = 15;
 % Registration parameters
 analysisSettings.regXCrop = 1024;
 analysisSettings.regYCrop = 1024;
-analysisSettings.MAOrder = 4; % MA: moving average
-analysisSettings.subPixelRegFactor = 1; % FIX CIRCSHIFTING CODE for this!! precision is reciprocal
+analysisSettings.MAOrder = 5; % MA: moving average
 analysisSettings.MARegFramesPerChunk = 64;
-analysisSettings.maxRho = .95; % Normalized parameters for circularly-symmetric bandpass of cross power spectrum
-analysisSettings.minRho = 0.025;
+analysisSettings.maxRho = .5; % Normalized parameters for circularly-symmetric bandpass of cross power spectrum
+analysisSettings.minRho = 0.01;
+analysisSettings.maxShiftPerFrame = 10;

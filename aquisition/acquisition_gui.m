@@ -69,6 +69,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
        
     % Transfer cropped calibration frame to GPU
     cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
+    
+    % Make the "donut" cross-power spectrum filter
+    donutFiltGPU = make_donut_filt(handles.acqSettings.xDisplaySize,handles.acqSettings.xDisplaySize,.01,.9);
 
     % Allocate refresh rate array
     refreshRateArray = 1024*ones(handles.acqSettings.refreshRateFrames,1,'uint32');
@@ -92,10 +95,10 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         flushdata(handles.vid);
         
         % Show image
-        tic
+        %tic
         cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
-        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma);
-        disp(toc)
+        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma);
+        %disp(toc)
         set(handles.imgHandle,'CData',displayImg)
 
         % Update histograms
@@ -109,12 +112,10 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         set(handles.textDisplayFrameStats,'String',str);
         
         drawnow; % Interrupt point, necessary for img update & breaking loop
-
-        handles = guidata(hObject); 
-        
+        handles = guidata(hObject); % Pass along GUI data
     end
     
-    % If we reach here, the preview has ended: stop camera
+    % If we reach here, the preview has ended: stop camera & flush buffer
     stop(handles.vid); flushdata(handles.vid);
     
     % Switch back label, re-enable controls
@@ -124,10 +125,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Run capture callback (does nothing if button not depressed)
     buttonCapture_Callback(handles.buttonCapture,eventdata,handles);
-    
+
 else
     disp('Stopping Preview')
-    
 end
 
 %% COLLECT CALIBRATION BUTTON
@@ -253,6 +253,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     % Transfer cropped calibration frame to GPU
     cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
     
+    % Make the "donut" cross-power spectrum filter
+    donutFiltGPU = make_donut_filt(handles.acqSettings.xDisplaySize,handles.acqSettings.xDisplaySize,.05,.95);
+
     % Allocate refresh rate array
     refreshRateArray = ones(handles.acqSettings.refreshRateFrames,1,'uint32');
        
@@ -275,7 +278,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
 
         % Show most recent images (registed and averaged on GPU)
         cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
-        displayImg = gather(reg_scale_img_8bit(cropImgGPU,cropCalibGPU,handles.acqSettings.filterSigma));
+        displayImg = gather(reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma));
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
@@ -305,11 +308,12 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     
     % Collection has ended: stop the camera, retrieve data, flush the rest
     stop(handles.vid); 
-    captureFrames = getdata(handles.vid,handles.acqSettings.numCaptureFrames);
-    flushdata(handles.vid);
     
     if get(hObject,'Value') == 1 % Save the capture data and metadata
         set(hObject,'String','Saving Data');drawnow
+        % Retrieve data
+        captureFrames = getdata(handles.vid,handles.acqSettings.numCaptureFrames);
+        
         % Formulate datapath for this capture--saves as date in YYYYMMDD \
         % time in HHMMSS[ms][ms][ms]-- and make directory
         handles.acqSettings.captureDirectory = [handles.acqSettings.dataPath filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
@@ -328,6 +332,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         % Don't do saving b/c the capture was aborted
         set(hObject,'String','Capture (Last: Aborted)')
     end
+    
+    % Flush any extra buffer
+    flushdata(handles.vid);
     
     % Switch back value, re-enable controls, and store guidata
     set(hObject,'Value',0);
@@ -363,8 +370,8 @@ end
 
 %% HOTKEYS
 % supported: F1 (Preview),  F4 (Capture)
+function hot_key_callback(eventdata,handles) % Main hot key button
 
-function retroIllumAcqGUI_KeyPressFcn(hObject, eventdata, handles)
 % Key that was pressed is in eventdata.Key field
 if strcmp(eventdata.Key,'f1') % Toggle Preview Button and run callback
     oldValue = get(handles.buttonPreview,'Value');
@@ -378,6 +385,24 @@ elseif strcmp(eventdata.Key,'f4') % Toggle Capture button and run callback
     
 end
 
+% Individ. key press callback functions all call the main hot key function
+function retroIllumAcqGUI_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
+
+function buttonPreview_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
+
+function buttonCapture_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
+
+function buttonCollectCalibration_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
+
+function textNumDisplayFrameAverage_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
+
+function textNumCaptureFrames_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
 
 
 

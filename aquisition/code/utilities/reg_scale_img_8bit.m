@@ -1,26 +1,29 @@
-function scaledImg8b = reg_scale_img_8bit(imgGPU,calibImgGPU,filterSigma)
+function scaledImg8b = reg_scale_img_8bit(imgGPU,calibImgGPU,xPowFilt,filterSigma)
 % Function to perform image registration, averaging and field flattening.
-% imgGPU, calibImgGPU should already be on the GPU, ie of class gpuArray
+% imgGPU, xPowFilt, calibImgGPU should already be on the GPU, ie of class gpuArray
 % This is the more advanced variant of "scale_img_8bit" which simply sums
 % down the time dimension
 
-numFrames = single(size(imgGPU,4));
-middleFrame = ceil(numFrames/2);
-
-% Convert image stream to single, divide out by calibration to even PRNU
+% Convert raw image stream to single, divide out by calibration to even PRNU
 correctedImg = arrayfun(@single_div_calib,imgGPU,calibImgGPU);
+numFrames = single(size(correctedImg,4));
+middleFrame = ceil(numFrames/2);
 
 % Registration step 1: FT
 imgFT = fft2(correctedImg);
 
 % step 2: Cross power spectrum-referenced to middle frame of stream
 xPowSpec = conj(imgFT(:,:,:,middleFrame)).*imgFT;
+%xPowSpec = xPowSpec./abs(xPowSpec); % normalize
 
 % Step 3: inverse FT to make cross correlations
-xCorrs = abs(ifft2(xPowSpec));
+xCorrs = abs(ifft2(xPowSpec.*xPowFilt));
 
-% Step 4: set 1,1 to 0 to avoid static component
+% Step 4: set 1,1 to 0 to avoid static component, also set regions outside
+% reasonable range to 0
 %xCorrs(1,1,:,:) = 0;
+xCorrs(65:704,:,:,:) = 0;
+xCorrs(:,65:704,:,:) = 0;
 
 % Step 5: Locate peaks
 [~,xPkIdx] = max(max(xCorrs,[],1),[],2);
