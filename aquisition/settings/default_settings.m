@@ -17,13 +17,15 @@ acqSettings.xOffset = 0;
 acqSettings.yOffset = 0;
 acqSettings.xSize = 1536;
 acqSettings.ySize = 1088;
-acqSettings.xDisplaySize = 768;
-acqSettings.yDisplaySize = 768;
+acqSettings.xDisplaySize = 1024;
+acqSettings.yDisplaySize = 1024;
+acqSettings.xDisplayActualSize = 768;
+acqSettings.yDisplayActualSize = 768;
 
 % Consecutive frames to average for real-time display
 acqSettings.displayFrameAverage = 9;
 
-% Bit depth (for this application always 8-bit)
+% Bit depth 
 acqSettings.bitDepth = 8;
 acqSettings.pixelFormat = 'Mono8';
 

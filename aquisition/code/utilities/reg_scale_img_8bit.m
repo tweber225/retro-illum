@@ -1,4 +1,4 @@
-function scaledImg8b = reg_scale_img_8bit(imgGPU,calibImgGPU,xPowFilt,filterSigma)
+function scaledImg8b = reg_scale_img_8bit(imgGPU,calibImgGPU,xPowFilt,filterSigma,yFinalSize,xFinalSize)
 % Function to perform image registration, averaging and field flattening.
 % imgGPU, xPowFilt, calibImgGPU should already be on the GPU, ie of class gpuArray
 % This is the more advanced variant of "scale_img_8bit" which simply sums
@@ -38,8 +38,11 @@ for fIdx = 1:numFrames
     sumImg = sumImg + circshift(correctedImg(:,:,:,fIdx),[-yPkIdx(fIdx)+1,-xPkIdx(fIdx)+1]);
 end
 
+% Resize to final display size
+resizedImg = imresize(sumImg,[yFinalSize,xFinalSize]);
+
 % Perform field flattening (to remove low spatial frequencies)
-filtImg = arrayfun(@flatten_field,sumImg,imgaussfilt(sumImg,filterSigma));
+filtImg = arrayfun(@flatten_field,resizedImg,imgaussfilt(resizedImg,filterSigma));
 
 % Perform scaling operation
 absImg = abs(filtImg);

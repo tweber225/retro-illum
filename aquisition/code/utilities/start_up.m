@@ -10,6 +10,9 @@ parpool(2);
 default_settings
 handles.acqSettings = acqSettings;
 
+% Move pupil-view mirror up (ie logic level low)
+handles.daq = initialize_DAQ(1); % 1 channel
+
 % Try to open the camera
 handles = open_camera(handles);
 
@@ -31,7 +34,7 @@ handles = update_displays(handles);
 % Render blank frame on image axes
 blankFrame = zeros(handles.acqSettings.yDisplaySize,handles.acqSettings.xDisplaySize,'uint8');
 axes(handles.imgAxes);
-handles.imgHandle = imshow(blankFrame);
+handles.imgHandle = imshow(imresize(blankFrame,[handles.acqSettings.yDisplayActualSize, handles.acqSettings.xDisplayActualSize]));
 % Then update this with set(handles.imgHandle,'CData',YOUR8BITIMAGE)
 
 % Make dummy frame for background

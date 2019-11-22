@@ -15,9 +15,7 @@ if nargout
     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
     gui_mainfcn(gui_State, varargin{:});
-end
-% End initialization code - DO NOT EDIT
-
+end % End initialization code - DO NOT EDIT
 
 % --- Executes just before acquisition_gui is made visible.
 function acquisition_gui_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -37,19 +35,19 @@ handles = start_up(handles);
 % Update handles structure
 guidata(hObject, handles);
 
-
-
 function varargout = acquisition_gui_OutputFcn(hObject, eventdata, handles) 
 varargout{1} = handles.output;
 
-
+%% CLOSING FUNCTION
 function retroIllumAcqGUI_CloseRequestFcn(hObject, eventdata, handles)
 try
     delete(handles.vid) % Close camera
+    delete(handles.daq) % Close DAQ session
     clear handles.src handles.vid
     disp('Camera closed')
     delete(gcp('nocreate'))
     delete(hObject); % Close figure
+    
 catch
     disp('Error closing GUI')
     delete(gcp('nocreate'))
@@ -57,12 +55,14 @@ catch
 end
 
 
-
 %% PREVIEW BUTTON
 function buttonPreview_Callback(hObject, eventdata, handles)
 if get(hObject,'Value') == 1 % If the button has been pressed on
     % Switch this button's label
-    set(hObject,'String','Stop'); 
+    set(hObject,'String','Stop');
+    
+    % Move pupil mirror
+    outputSingleScan(handles.daq,true);
     
     % Disable controls
     handles = enable_disable_controls(handles,'preview','off');
@@ -96,9 +96,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         
         % Show image
         %tic
-        cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
-        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma);
-        %disp(toc)
+        cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:)); %disp(toc)
+        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma,...
+            handles.acqSettings.yDisplayActualSize,handles.acqSettings.xDisplayActualSize);
         set(handles.imgHandle,'CData',displayImg)
 
         % Update histograms
@@ -123,9 +123,11 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     handles = enable_disable_controls(handles,'preview','on');
     guidata(hObject, handles);
     
-    % Run capture callback (does nothing if button not depressed)
+    % Run capture (does nothing if "Capture" button not depressed)
     buttonCapture_Callback(handles.buttonCapture,eventdata,handles);
-
+    
+    % Move pupil mirror back into place for pupil alignment
+    outputSingleScan(handles.daq,false);
 else
     disp('Stopping Preview')
 end
@@ -133,9 +135,11 @@ end
 %% COLLECT CALIBRATION BUTTON
 function buttonCollectCalibration_Callback(hObject, ~, handles)
 if get(hObject,'Value') == 1 % If the button has been pressed on
-    
     % Switch this button's label
     set(hObject,'String','Abort'); 
+    
+    % Move pupil mirror
+    outputSingleScan(handles.daq,true);
     
     % Disable controls
     handles = enable_disable_controls(handles,'calibration','off');
@@ -204,8 +208,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
 
     end
     
-    % Collection has ended: Stop the camera
+    % Collection has ended: Stop the camera, flush buffer, move pupil mirror
     stop(handles.vid); flushdata(handles.vid);
+    outputSingleScan(handles.daq,false);
     
     % Average the frame sum register in single precision
     handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
@@ -241,28 +246,21 @@ if get(handles.buttonPreview,'Value') == 1 % If preview is on ...
 end
 
 if get(hObject,'Value') == 1 % If the button has been pressed on...
-    % Note start time
+    % Move pupil mirror, note start time, switch label, disable controls
+    outputSingleScan(handles.daq,true);
     handles.acqSettings.captureStartTime = datestr(datetime);
-    
-    % Switch this button's label
     set(hObject,'String','Abort');
-    
-    % Disable controls
     handles = enable_disable_controls(handles,'capture','off');   
     
-    % Transfer cropped calibration frame to GPU
+    % Transfer cropped calibration to GPU, make donut x-power spec filter
     cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
-    
-    % Make the "donut" cross-power spectrum filter
     donutFiltGPU = make_donut_filt(handles.acqSettings.xDisplaySize,handles.acqSettings.xDisplaySize,.05,.95);
 
     % Allocate refresh rate array
     refreshRateArray = ones(handles.acqSettings.refreshRateFrames,1,'uint32');
        
-    % Store guidata
+    % Store guidata, Start the camera
     guidata(hObject,handles);
-    
-    % Start the camera
     start(handles.vid); disp('Starting Capture')
     
     % Run until number of capture frames have been acquired
@@ -278,7 +276,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
 
         % Show most recent images (registed and averaged on GPU)
         cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
-        displayImg = gather(reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma));
+        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU, handles.acqSettings.filterSigma, ...
+            handles.acqSettings.yDisplayActualSize,handles.acqSettings.xDisplayActualSize);
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
@@ -295,19 +294,18 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         set(handles.textDisplayFrameStats,'String',str);
         
         drawnow % Interrupt point, necessary for img update & breaking loop
-
         handles = guidata(hObject);
         
         if get(hObject,'Value') == 0
-            % Abort button has been pressed, clear register and break loop
-            clear captureFrames
+            % Abort button has been pressed, break loop
             break;             
         end
 
     end
     
-    % Collection has ended: stop the camera, retrieve data, flush the rest
+    % Collection has ended: stop the camera, move mirror
     stop(handles.vid); 
+    outputSingleScan(handles.daq,false);
     
     if get(hObject,'Value') == 1 % Save the capture data and metadata
         set(hObject,'String','Saving Data');drawnow
@@ -324,7 +322,6 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         
         % In parallel: save settings used during capture
         parfeval(@save_settings,0,handles.acqSettings);
-        %save_settings(handles.acqSettings)
         
         set(hObject,'String','Capture (Last: Success)');drawnow;
         disp(['Successfully saved file at ' handles.acqSettings.captureDirectory])
@@ -347,21 +344,34 @@ else
 end
 
 
-
+%% SETTINGS FUNCTION CALLBACKS
 function textNumCaptureFrames_Callback(hObject, eventdata, handles)
 textNumCaptureFramesCallback(hObject,handles);
 
 function textNumDisplayFrameAverage_Callback(hObject, eventdata, handles)
 textNumDisplayFrameAverageCallback(hObject,handles);
 
+function textFilterSigma_Callback(hObject, eventdata, handles)
+textFilterSigmaCallback(hObject,handles);
+
+function textExposureTime_Callback(hObject, eventdata, handles)
+textExposureTimeCallback(hObject,handles);
 
 
-% CREATE FUNCTIONS -- ignore
+%% CREATE FUNCTIONS -- ignore
 function textNumCaptureFrames_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 function textNumDisplayFrameAverage_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function textFilterSigma_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function textExposureTime_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -388,21 +398,17 @@ end
 % Individ. key press callback functions all call the main hot key function
 function retroIllumAcqGUI_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
-
 function buttonPreview_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
-
 function buttonCapture_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
-
 function buttonCollectCalibration_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
-
 function textNumDisplayFrameAverage_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
-
 function textNumCaptureFrames_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
-
-
-
+function textFilterSigma_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)
+function textExposureTime_KeyPressFcn(hObject, eventdata, handles)
+hot_key_callback(eventdata,handles)

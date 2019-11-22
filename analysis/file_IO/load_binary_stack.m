@@ -21,4 +21,5 @@ fclose(fileID);
 stackOut = reshape(allData,dims);
 
 % Confirm read
-disp(['Read file: ' stackPath ' (' num2str(toc) ' sec)'])
+readTime = toc;
+disp(['Read file: ' stackPath ' (' num2str((fileStruct.bytes/(2^20))/readTime) ' MB/sec)' ])

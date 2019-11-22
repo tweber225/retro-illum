@@ -6,8 +6,8 @@ newVal = round(str2double(get(handles.textNumDisplayFrameAverage,'String')));
 % Check limits
 if newVal < 1
     newVal = 1;
-elseif newVal > 16
-    newVal = 16;
+elseif newVal > 64
+    newVal = 64;
 end
 
 % After passing limits, set the value
