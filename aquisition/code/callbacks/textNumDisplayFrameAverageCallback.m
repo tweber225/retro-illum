@@ -1,13 +1,17 @@
 function textNumDisplayFrameAverageCallback(hObject,handles)
 
+% Min/max values
+minVal = 1;
+maxVal = 64;
+
 % Get new value
 newVal = round(str2double(get(handles.textNumDisplayFrameAverage,'String')));
 
 % Check limits
-if newVal < 1
-    newVal = 1;
-elseif newVal > 64
-    newVal = 64;
+if newVal < minVal
+    newVal = minVal;
+elseif newVal > maxVal
+    newVal = maxVal;
 end
 
 % After passing limits, set the value
