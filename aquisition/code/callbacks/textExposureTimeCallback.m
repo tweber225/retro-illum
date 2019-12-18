@@ -1,25 +1,29 @@
 function textExposureTimeCallback(hObject,handles)
 
+% min/max values
+maxExposure = 33000; % 33 ms
+minExposure = 100; % 0.1 ms
+
 % Get new value
 newVal = round(str2double(get(handles.textExposureTime,'String')));
 
 % Check limits
-if newVal < 100
-    newVal = 100;
-elseif newVal > 33000
-    newVal = 33000;
+if newVal < minExposure
+    newVal = minExposure;
+elseif newVal > maxExposure
+    newVal = maxExposure;
 end
 
-% Try to set new exposure time on camera
-handles.src.ExposureTime = newVal;
-handles.acqSettings.exposureTime = handles.src.ExposureTime; % get set value
+% Try to set new exposure time on camera, then get value
+handles.baslerCam.Parameters.Item('ExposureTimeAbs').SetValue(newVal);
+handles.acqSettings.exposureTime = handles.baslerCam.Parameters.Item('ExposureTimeAbs').GetValue; % get set value
 
 % Set the value in GUI
 set(handles.textExposureTime,'String',num2str(handles.acqSettings.exposureTime));
 
 % Update timing display
-handles.acqSettings.resultingFrameRate = handles.src.ResultingFrameRate;
-handles.acqSettings.sensorReadoutTime = handles.src.SensorReadoutTime;
+handles.acqSettings.resultingFrameRate = handles.baslerCam.Parameters.Item('ResultingFrameRateAbs').GetValue;
+handles.acqSettings.sensorReadoutTime = handles.baslerCam.Parameters.Item('ReadoutTimeAbs').GetValue;
 handles = update_displays(handles); 
 
 % Pass data to GUI
