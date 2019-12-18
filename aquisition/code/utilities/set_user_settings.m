@@ -2,45 +2,28 @@ function handles = set_user_settings(handles)
 
 % Set and then Get various parameters
 
-% Set sensor size
-handles.src.CenterX = handles.acqSettings.centerX;
-handles.src.CenterY = handles.acqSettings.centerY;
-handles.vid.ROIPosition = [handles.acqSettings.xOffset handles.acqSettings.yOffset handles.acqSettings.xSize handles.acqSettings.ySize];
-handles.acqSettings.centerX = handles.src.CenterX;
-handles.acqSettings.centerY = handles.src.CenterY;
-updatedROI = handles.vid.ROIPosition;
-handles.acqSettings.xOffset = updatedROI(1);
-handles.acqSettings.yOffset = updatedROI(2);
-handles.acqSettings.xSize = updatedROI(3);
-handles.acqSettings.ySize = updatedROI(4);
+% Set (centered) sensor size on Basler Pylon SDK
+handles.baslerCam.Parameters.Item('CenterX').SetValue(handles.acqSettings.centerX);
+handles.baslerCam.Parameters.Item('CenterY').SetValue(handles.acqSettings.centerY);
+handles.baslerCam.Parameters.Item('Width').SetValue(handles.acqSettings.xSize);
+handles.baslerCam.Parameters.Item('Height').SetValue(handles.acqSettings.ySize);
+
+% Get updated sensor size
+handles.acqSettings.centerX = handles.baslerCam.Parameters.Item('CenterX').GetValue;
+handles.acqSettings.centerY = handles.baslerCam.Parameters.Item('CenterY').GetValue;
+handles.acqSettings.xOffset = handles.baslerCam.Parameters.Item('OffsetX').GetValue;
+handles.acqSettings.yOffset = handles.baslerCam.Parameters.Item('OffsetY').GetValue;
+handles.acqSettings.xSize = handles.baslerCam.Parameters.Item('Width').GetValue;
+handles.acqSettings.ySize = handles.baslerCam.Parameters.Item('Height').GetValue;
+
+% Update ROI on frame grabber SDK
+handles.vid.ROIPosition = double([handles.acqSettings.xOffset handles.acqSettings.yOffset handles.acqSettings.xSize handles.acqSettings.ySize]);
 
 % Set gain
-handles.src.Gain = handles.acqSettings.gain;
-handles.acqSettings.gain = handles.src.Gain;
+handles.baslerCam.Parameters.Item('GainRaw').SetValue(handles.acqSettings.gain);
+handles.acqSettings.gain = handles.baslerCam.Parameters.Item('GainRaw').GetValue;
 
 % Set exposure
-handles.src.ExposureTime = handles.acqSettings.exposureTime;
-handles.acqSettings.exposureTime = handles.src.ExposureTime;
+handles.baslerCam.Parameters.Item('ExposureTimeAbs').SetValue(handles.acqSettings.exposureTime);
+handles.acqSettings.exposureTime = handles.baslerCam.Parameters.Item('ExposureTimeAbs').GetValue;
 
-% Set GPIOs
-handles.src.LineSelector = handles.acqSettings.GPIO1Name;
-handles.src.LineMode = handles.acqSettings.GPIO1LineMode;
-handles.src.LineSource = handles.acqSettings.GPIO1LineSource;
-handles.src.LineInverter = handles.acqSettings.GPIO1LineInverter;
-if ~strcmp(handles.src.LineMode,handles.acqSettings.GPIO1LineMode) || ~strcmp(handles.src.LineSource,handles.acqSettings.GPIO1LineSource) || ~strcmp(handles.src.LineInverter,handles.acqSettings.GPIO1LineInverter)
-    error('Could not set GPIO 1 mode');
-end
-
-handles.src.LineSelector = handles.acqSettings.GPIO2Name;
-handles.src.LineMode = handles.acqSettings.GPIO2LineMode;
-handles.src.LineSource = handles.acqSettings.GPIO2LineSource;
-handles.src.LineInverter = handles.acqSettings.GPIO2LineInverter;
-if ~strcmp(handles.src.LineMode,handles.acqSettings.GPIO2LineMode) || ~strcmp(handles.src.LineSource,handles.acqSettings.GPIO2LineSource) || ~strcmp(handles.src.LineInverter,handles.acqSettings.GPIO2LineInverter)
-    error('Could not set GPIO 2 mode');
-end
-
-% Turn off data throughput limit
-handles.src.DeviceLinkThroughputLimitMode = 'Off';
-if ~strcmp(handles.src.DeviceLinkThroughputLimitMode,'Off')
-    error('Could not turn off data throughput limit mode')
-end

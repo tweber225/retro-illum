@@ -130,9 +130,7 @@ end % end chunk looping
 disp(['Processing time: ' num2str(toc) ' sec']);
 
 % Save the averaged frames
-if numel(avgFrames)*2 > 3.8*2^30
-    avgFrames = avgFrames(:,:,1:2:end); % decimates frames a bit
-end
+avgFrames = avgFrames(:,:,1:analysisSettings.decimationFactor:end); % decimates frames a bit
 saveastiff(avgFrames,saveFileName);
 
 

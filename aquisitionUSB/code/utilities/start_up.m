@@ -3,12 +3,15 @@ function handles = start_up(handles)
 % - load default settings into settings structure
 % - open camera
 
+% Start parallel pool
+parpool(2);
+
 % Load default settings store in handles structure
 default_settings
 handles.acqSettings = acqSettings;
 
-% Move pupil-view mirror up, turn on pupil LED (ie logic level low,high)
-handles.daq = initialize_DAQ(2); % 2 channels
+% Move pupil-view mirror up (ie logic level low)
+handles.daq = initialize_DAQ(1); % 1 channel
 
 % Try to open the camera
 handles = open_camera(handles);
@@ -20,8 +23,8 @@ handles = set_user_settings(handles);
 handles = set_GUI_options(handles);
 
 % Get derived parameters
-handles.acqSettings.resultingFrameRate = handles.baslerCam.Parameters.Item('ResultingFrameRateAbs').GetValue;
-handles.acqSettings.sensorReadoutTime = handles.baslerCam.Parameters.Item('ReadoutTimeAbs').GetValue;
+handles.acqSettings.resultingFrameRate = handles.src.ResultingFrameRate;
+handles.acqSettings.sensorReadoutTime = handles.src.SensorReadoutTime;
 handles.xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2); % Cropping of displayed frames
 handles.yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
 

@@ -6,7 +6,7 @@ set(handles.textNumCaptureFrames,'String',num2str(handles.acqSettings.numCapture
 % Set the frames to average
 set(handles.textNumDisplayFrameAverage,'String',num2str(handles.acqSettings.displayFrameAverage));
 
-% Set the filtering sigma parameter
+% Set the frames to average
 set(handles.textFilterSigma,'String',num2str(handles.acqSettings.filterSigma));
 
 % Set exposure time

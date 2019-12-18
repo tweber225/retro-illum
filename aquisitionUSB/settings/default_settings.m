@@ -1,30 +1,24 @@
 % Default settings and notes on usage
 
-% Camera SN
-acqSettings.cameraSerialNumber = '23187241';
-
 % Save data directory
 acqSettings.dataPath = 'T:\retro-illum';
-
-% Camera configuration directory
-acqSettings.saperaConfigFilePath = 'C:\Users\MertzLabAdmin\retro-illum\cam configs\B_acA2040-180kmNIR_10tap8bit_fullarea.cca';
 
 % Note session start time
 acqSettings.sessionStartTime = datestr(datetime);
 acqSettings.captureStartTime = 'none';
 
 % Image Acquisition Toolbox Adapter name
-acqSettings.adapterName = 'dalsa';
+acqSettings.adapterName = 'gentl';
 
 % Image size / ROI
-acqSettings.centerX = true;
-acqSettings.centerY = true;
-acqSettings.xOffset = int64(0); % initial xy offsets are overwritten on startup
-acqSettings.yOffset = int64(0);
-acqSettings.xSize = int64(1540);
-acqSettings.ySize = int64(1088);
-acqSettings.xDisplaySize = int64(1024);
-acqSettings.yDisplaySize = int64(1024);
+acqSettings.centerX = 'True';
+acqSettings.centerY = 'True';
+acqSettings.xOffset = 0;
+acqSettings.yOffset = 0;
+acqSettings.xSize = 1536;
+acqSettings.ySize = 1088;
+acqSettings.xDisplaySize = 1024;
+acqSettings.yDisplaySize = 1024;
 acqSettings.xDisplayActualSize = 768;
 acqSettings.yDisplayActualSize = 768;
 
@@ -36,7 +30,7 @@ acqSettings.bitDepth = 8;
 acqSettings.pixelFormat = 'Mono8';
 
 % Gain
-acqSettings.gain = 33; % 33 in min, then gain is 33/32; see documentation
+acqSettings.gain = 0;
 
 % Number of frames to average for background
 acqSettings.numBackgroundFrames = 256;

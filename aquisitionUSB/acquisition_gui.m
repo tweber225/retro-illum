@@ -41,10 +41,9 @@ varargout{1} = handles.output;
 %% CLOSING FUNCTION
 function retroIllumAcqGUI_CloseRequestFcn(hObject, eventdata, handles)
 try
-    delete(handles.vid) % Close camera on frame grabbe
-    handles.baslerCam.Close % Close camera on Basler SDK
+    delete(handles.vid) % Close camera
     delete(handles.daq) % Close DAQ session
-    clear handles.src handles.vid handles.baslerCam
+    clear handles.src handles.vid
     disp('Camera closed')
     delete(gcp('nocreate'))
     delete(hObject); % Close figure

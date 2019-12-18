@@ -9,7 +9,6 @@ addDigitalChannel(daqHandle,'Dev1',portLineString,'OutputOnly');
 
 % Output all low level signals
 digitalOutputScan = zeros([1 numPins],'logical');
-digitalOutputScan(2) = true;
 outputSingleScan(daqHandle,digitalOutputScan);
 
 % Get name of device

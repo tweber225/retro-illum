@@ -1,33 +1,29 @@
 function handles = open_camera(handles)
 
-%% Check hardware and installed IMAQ adapters
+%% Check installed IMAQ adapters
 hardwareInfo = imaqhwinfo;
 if ~sum(strcmp(hardwareInfo.InstalledAdaptors,handles.acqSettings.adapterName))
     error('Could not find designated IMAQ adapter!')
 end
 
-% Check that there's a camera
-adapterInfo = imaqhwinfo(handles.acqSettings.adapterName);
-if isempty(adapterInfo.DeviceIDs)
-    error('No camera devices found')
-end
+%% Load Basler Pylon SDK
+% initiate NET interface
+NET.addAssembly('Basler.Pylon');
+import Basler.Pylon.*
 
-% Check that the camera has specified format
-cameraInfo = imaqhwinfo(handles.acqSettings.adapterName, 1);
-if ~sum(strcmp(cameraInfo.SupportedFormats,handles.acqSettings.pixelFormat))
-    error('Camera does not support requested format')
-end
+% Find camera and open it
+handles.baslerCam = Camera(handles.acqSettings.cameraSerialNumber);
+handles.baslerCam.Open();
+
+% Note the device info
+handles.acqSettings.cameraVendorName = char(handles.baslerCam.Parameters.Item('DeviceVendorName').GetValue());
+handles.acqSettings.cameraModelName = char(handles.baslerCam.Parameters.Item('DeviceModelName').GetValue());
+handles.acqSettings.cameraName = [handles.acqSettings.cameraVendorName ' ' handles.acqSettings.cameraModelName ' (SN:' handles.acqSettings.cameraSerialNumber ')'];
 
 
 %% Create video and objects
-handles.vid = videoinput(handles.acqSettings.adapterName, 1, handles.acqSettings.pixelFormat);
+handles.vid = videoinput('dalsa', 1, handles.acqSettings.saperaConfigFilePath);
 handles.src = getselectedsource(handles.vid);
-
-% Note the device info
-handles.acqSettings.cameraVendorName = handles.src.DeviceVendorName;
-handles.acqSettings.cameraModelName = handles.src.DeviceModelName;
-handles.acqSettings.cameraSerialNumber = handles.src.DeviceSerialNumber;
-handles.acqSettings.cameraName = [handles.acqSettings.cameraVendorName ' ' handles.acqSettings.cameraModelName ' (SN:' handles.acqSettings.cameraSerialNumber ')'];
 
 % Set number of triggers to infinite
 handles.vid.TriggerRepeat = inf;
