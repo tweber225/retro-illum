@@ -1,13 +1,17 @@
 function textFilterSigmaCallback(hObject,handles)
 
+% Min/max
+maxVal = 256;
+minVal = 1;
+
 % Get new value
 newVal = round(str2double(get(handles.textFilterSigma,'String')));
 
 % Check limits
-if newVal < 1
-    newVal = 1;
-elseif newVal > 1024
-    newVal = 1024;
+if newVal < minVal
+    newVal = minVal;
+elseif newVal > maxVal
+    newVal = maxVal;
 end
 
 % After passing limits, set the value
