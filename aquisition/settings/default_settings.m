@@ -4,7 +4,7 @@
 acqSettings.cameraSerialNumber = '23187241';
 
 % Save data directory
-acqSettings.dataPath = 'T:\retro-illum';
+acqSettings.dataPath = 'C:\Users\MertzLabAdmin\retro-illum\data';
 
 % Camera configuration directory
 acqSettings.saperaConfigFilePath = 'C:\Users\MertzLabAdmin\retro-illum\cam configs\B_acA2040-180kmNIR_10tap8bit_fullarea.cca';
@@ -51,7 +51,7 @@ acqSettings.numCaptureFrames = 1024;
 acqSettings.maxMemMB = 8*1024; % 8 GB
 
 % Exposure time (in microseconds)
-acqSettings.exposureTime = 5845;
+acqSettings.exposureTime = 3200;
 
 % Note whether a calibration has been acquired (not yet)
 acqSettings.calibrationAcquired = false;
@@ -71,7 +71,7 @@ acqSettings.refreshRateFrames = 16;
 
 % Thumbnail image processing parameters
 acqSettings.thumbOptsFilterSigma = 25;
-acqSettings.thumbOptsScaleDownFactor = 0.75;
+acqSettings.thumbOptsScaleDownFactor = 0.5;
 acqSettings.thumbOptsXCropWidth = 1024;
 acqSettings.thumbOptsYCropWidth = 1024;
 acqSettings.thumbOptsMaxGPUVarSize = 2^30; % 1 GB

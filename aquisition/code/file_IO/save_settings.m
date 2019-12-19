@@ -18,6 +18,8 @@ for settingIdx = 1:numel(fieldNamesArray)
             fprintf(fileID,'%s char %s\r\n',fieldNamesArray{settingIdx},settingValuesArray{settingIdx});
         case 'int32'
             fprintf(fileID,'%s int32 %d\r\n',fieldNamesArray{settingIdx},settingValuesArray{settingIdx});
+        case 'int64'
+            fprintf(fileID,'%s int64 %d\r\n',fieldNamesArray{settingIdx},settingValuesArray{settingIdx});
         case 'uint32'
             fprintf(fileID,'%s uint32 %d\r\n',fieldNamesArray{settingIdx},settingValuesArray{settingIdx});
         case 'uint16'

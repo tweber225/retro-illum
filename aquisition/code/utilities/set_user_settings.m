@@ -17,7 +17,8 @@ handles.acqSettings.xSize = handles.baslerCam.Parameters.Item('Width').GetValue;
 handles.acqSettings.ySize = handles.baslerCam.Parameters.Item('Height').GetValue;
 
 % Update ROI on frame grabber SDK
-handles.vid.ROIPosition = double([handles.acqSettings.xOffset handles.acqSettings.yOffset handles.acqSettings.xSize handles.acqSettings.ySize]);
+%handles.vid.ROIPosition = double([handles.acqSettings.xOffset handles.acqSettings.yOffset handles.acqSettings.xSize handles.acqSettings.ySize]);
+handles.vid.ROIPosition = double([0 0 handles.acqSettings.xSize handles.acqSettings.ySize]);
 
 % Set gain
 handles.baslerCam.Parameters.Item('GainRaw').SetValue(handles.acqSettings.gain);

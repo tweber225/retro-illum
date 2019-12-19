@@ -63,7 +63,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     set(hObject,'String','Stop');
     
     % Move pupil mirror
-    outputSingleScan(handles.daq,true);
+    outputSingleScan(handles.daq,[true false]);
     
     % Disable controls
     handles = enable_disable_controls(handles,'preview','off');
@@ -96,8 +96,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         flushdata(handles.vid);
         
         % Show image
-        %tic
-        cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:)); %disp(toc)
+        cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
         displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma,...
             handles.acqSettings.yDisplayActualSize,handles.acqSettings.xDisplayActualSize);
         set(handles.imgHandle,'CData',displayImg)
@@ -128,7 +127,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     buttonCapture_Callback(handles.buttonCapture,eventdata,handles);
     
     % Move pupil mirror back into place for pupil alignment
-    outputSingleScan(handles.daq,false);
+    outputSingleScan(handles.daq,[false true]);
 else
     disp('Stopping Preview')
 end
@@ -140,7 +139,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     set(hObject,'String','Abort'); 
     
     % Move pupil mirror
-    outputSingleScan(handles.daq,true);
+    outputSingleScan(handles.daq,[true false]);
     
     % Disable controls
     handles = enable_disable_controls(handles,'calibration','off');
@@ -211,7 +210,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Collection has ended: Stop the camera, flush buffer, move pupil mirror
     stop(handles.vid); flushdata(handles.vid);
-    outputSingleScan(handles.daq,false);
+    outputSingleScan(handles.daq,[false true]);
     
     % Average the frame sum register in single precision
     handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
@@ -248,7 +247,7 @@ end
 
 if get(hObject,'Value') == 1 % If the button has been pressed on...
     % Move pupil mirror, note start time, switch label, disable controls
-    outputSingleScan(handles.daq,true);
+    outputSingleScan(handles.daq,[true false]);
     handles.acqSettings.captureStartTime = datestr(datetime);
     set(hObject,'String','Abort');
     handles = enable_disable_controls(handles,'capture','off');   
@@ -306,7 +305,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     
     % Collection has ended: stop the camera, move mirror
     stop(handles.vid); 
-    outputSingleScan(handles.daq,false);
+    outputSingleScan(handles.daq,[false true]);
     
     if get(hObject,'Value') == 1 % Save the capture data and metadata
         set(hObject,'String','Saving Data');drawnow
@@ -318,11 +317,11 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         handles.acqSettings.captureDirectory = [handles.acqSettings.dataPath filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
         mkdir(handles.acqSettings.captureDirectory);
         
-        % In parallel: save raw stack, calibration, thumbnail preview       
-        parfeval(@save_captured_image_stack,0,squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,handles.thumbOpts);
+        % Save raw stack, calibration, thumbnail preview       
+        save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,handles.thumbOpts);
         
-        % In parallel: save settings used during capture
-        parfeval(@save_settings,0,handles.acqSettings);
+        % Save settings used during capture
+        save_settings(handles.acqSettings);
         
         set(hObject,'String','Capture (Last: Success)');drawnow;
         disp(['Successfully saved file at ' handles.acqSettings.captureDirectory])

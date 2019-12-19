@@ -48,5 +48,5 @@ maxAbs = smooth(maxAbs); % so scaling doesn't change too rapidly
 resizedStackGPU = resizedStackGPU./repmat(permute(maxAbs,[3 2 1]),[resizedY resizedX 1]);
 
 % Convert to 8 bit and send back to host (from GPU)
-stack8Bit = gather(uint8(128 + 127*resizedStackGPU));
+stack8Bit = gather(uint8(127 + 128*resizedStackGPU));
 

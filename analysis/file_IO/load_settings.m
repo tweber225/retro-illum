@@ -26,6 +26,10 @@ for fieldIdx = 1:numel(fieldNames)
             fieldFormat = '%*s %*s %d%*[^\n]';
             singleSettingData = textscan(fid,fieldFormat,1);
             settingsData{fieldIdx} = singleSettingData{1};
+        case 'int64'
+            fieldFormat = '%*s %*s %d%*[^\n]';
+            singleSettingData = textscan(fid,fieldFormat,1);
+            settingsData{fieldIdx} = singleSettingData{1};
         case 'double'
             fieldFormat = '%*s %*s %f%*[^\n]';
             singleSettingData = textscan(fid,fieldFormat,1);

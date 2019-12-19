@@ -6,7 +6,7 @@ xMax = single(xSize)/2-1;
 yMin = -single(ySize)/2;
 yMax = single(ySize)/2-1;
 
-smallerSize = min(xSize,ySize)/2;
+smallerSize = single(min(xSize,ySize))/2;
 
 xIdx = gpuArray.colon(xMin,xMax);
 yIdx = gpuArray.colon(yMin,yMax);

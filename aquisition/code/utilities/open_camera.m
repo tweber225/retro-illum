@@ -8,6 +8,7 @@ end
 
 %% Load Basler Pylon SDK
 % initiate NET interface
+disp('Loading Basler Pylon SDK')
 NET.addAssembly('Basler.Pylon');
 import Basler.Pylon.*
 
@@ -20,8 +21,13 @@ handles.acqSettings.cameraVendorName = char(handles.baslerCam.Parameters.Item('D
 handles.acqSettings.cameraModelName = char(handles.baslerCam.Parameters.Item('DeviceModelName').GetValue());
 handles.acqSettings.cameraName = [handles.acqSettings.cameraVendorName ' ' handles.acqSettings.cameraModelName ' (SN:' handles.acqSettings.cameraSerialNumber ')'];
 
+% Set sensor bit depth, pixel format and tap geometry
+handles.baslerCam.Parameters.Item('SensorBitDepth').SetValue('BitDepth10');
+handles.baslerCam.Parameters.Item('PixelFormat').SetValue('Mono8');
+handles.baslerCam.Parameters.Item('ClTapGeometry').SetValue('Geometry1X10_1Y')
 
 %% Create video and objects
+disp('Loading Dalsa Sapera SDK')
 handles.vid = videoinput('dalsa', 1, handles.acqSettings.saperaConfigFilePath);
 handles.src = getselectedsource(handles.vid);
 
