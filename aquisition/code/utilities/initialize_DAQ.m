@@ -7,7 +7,8 @@ daqHandle = daq.createSession('ni');
 portLineString = ['Port0/Line0:' num2str(numPins-1)];
 addDigitalChannel(daqHandle,'Dev1',portLineString,'OutputOnly');
 
-% Output all low level signals
+% Output initial signals [false true] first sent to flip mirror and
+% microscopy LED and secound is sent to pupil cam LED
 digitalOutputScan = zeros([1 numPins],'logical');
 digitalOutputScan(2) = true;
 outputSingleScan(daqHandle,digitalOutputScan);

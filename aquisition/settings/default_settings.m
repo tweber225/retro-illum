@@ -4,7 +4,7 @@
 acqSettings.cameraSerialNumber = '23187241';
 
 % Save data directory
-acqSettings.dataPath = 'C:\Users\MertzLabAdmin\retro-illum\data';
+acqSettings.dataPath = 'C:\Users\MertzLabAdmin\data';
 
 % Camera configuration directory
 acqSettings.saperaConfigFilePath = 'C:\Users\MertzLabAdmin\Documents\GitHub\retro-illum\cam configs\B_acA2040-180kmNIR_10tap8bit_fullarea.cca';
