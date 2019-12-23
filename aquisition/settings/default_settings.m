@@ -38,8 +38,9 @@ acqSettings.pixelFormat = 'Mono8';
 % Gain
 acqSettings.gain = 33; % 33 in min, then gain is 33/32; see documentation
 
-% Number of frames to average for background
-acqSettings.numBackgroundFrames = 256;
+% Number of frames to average for each calibration step
+acqSettings.numCalibrationFrames = 256;
+acqSettings.numCalibrationSteps = 8;
 
 % Display filter sigma (in pixels
 acqSettings.filterSigma = 24;

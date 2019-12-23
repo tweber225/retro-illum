@@ -141,8 +141,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     set(hObject,'String','Abort'); 
     
     % Start timer, Move pupil mirror
-    tic;
-    outputSingleScan(handles.daq,[true false]);
+    tic; outputSingleScan(handles.daq,[true false]);
     
     % Disable controls
     handles = enable_disable_controls(handles,'calibration','off');
@@ -169,7 +168,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     
     % Run until number of background frames have been acquired
     frameIdx = 1;
-    while frameIdx < handles.acqSettings.numBackgroundFrames
+    while frameIdx < handles.acqSettings.numCalibrationFrames
         % Wait for buffer
         framesAvail = handles.vid.FramesAvailable;
         if framesAvail < handles.acqSettings.displayFrameAverage
@@ -188,7 +187,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update button string with progress
-        set(hObject,'String',['Abort (' num2str(frameIdx) '/' num2str(handles.acqSettings.numBackgroundFrames) ' acquired)']);
+        set(hObject,'String',['Abort (' num2str(frameIdx) '/' num2str(handles.acqSettings.numCalibrationFrames) ' acquired)']);
         
         % Update frame stats
         refreshRateArray(1) = framesAvail;
@@ -217,7 +216,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     outputSingleScan(handles.daq,[false true]);
     
     % Average the frame sum register in single precision
-    handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numBackgroundFrames;
+    handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numCalibrationFrames;
     
     % Switch back label
     if get(hObject,'Value') == 1 % Then we didn't abort
