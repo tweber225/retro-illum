@@ -53,18 +53,11 @@ acqSettings.maxMemMB = 8*1024; % 8 GB
 % Exposure time (in microseconds)
 acqSettings.exposureTime = 3200;
 
+% Mirror flip time (measured 150 ms, but round up to be safe)
+acqSettings.mirrorFlipTime = 0.2; % sec
+
 % Note whether a calibration has been acquired (not yet)
 acqSettings.calibrationAcquired = false;
-
-% GPIO settings
-acqSettings.GPIO1Name = 'Line3';
-acqSettings.GPIO1LineMode = 'Output';
-acqSettings.GPIO1LineSource = 'ExposureActive';
-acqSettings.GPIO1LineInverter = 'True';
-acqSettings.GPIO2Name = 'Line4';
-acqSettings.GPIO2LineMode = 'Output';
-acqSettings.GPIO2LineSource = 'ExposureActive';
-acqSettings.GPIO2LineInverter = 'False';
 
 % Number of refreshes to use in calculating the average refresh rate
 acqSettings.refreshRateFrames = 16;

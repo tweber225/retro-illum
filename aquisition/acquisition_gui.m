@@ -62,7 +62,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Switch this button's label
     set(hObject,'String','Stop');
     
-    % Move pupil mirror
+    % Start timer, Move pupil mirror
+    tic;
     outputSingleScan(handles.daq,[true false]);
     
     % Disable controls
@@ -80,7 +81,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Store guidata
     guidata(hObject,handles);
     
-    % Start the camera
+    % Wait until mirror has flipped, Start the camera
+    pause(handles.acqSettings.mirrorFlipTime - toc);
     start(handles.vid); disp('Starting Preview')
     
     % Loop until the button is no longer pressed
@@ -138,7 +140,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Switch this button's label
     set(hObject,'String','Abort'); 
     
-    % Move pupil mirror
+    % Start timer, Move pupil mirror
+    tic;
     outputSingleScan(handles.daq,[true false]);
     
     % Disable controls
@@ -159,7 +162,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     % Store guidata
     guidata(hObject,handles);
     
-    % Start the camera
+    % Wait until mirror flips, Start the camera
+    pause(handles.acqSettings.mirrorFlipTime - toc);
     start(handles.vid);
     disp('Starting Calibration Capture')
     
@@ -246,7 +250,8 @@ if get(handles.buttonPreview,'Value') == 1 % If preview is on ...
 end
 
 if get(hObject,'Value') == 1 % If the button has been pressed on...
-    % Move pupil mirror, note start time, switch label, disable controls
+    % Start timer, move pupil mirror, note start time, switch label, disable controls
+    tic;
     outputSingleScan(handles.daq,[true false]);
     handles.acqSettings.captureStartTime = datestr(datetime);
     set(hObject,'String','Abort');
@@ -259,8 +264,9 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     % Allocate refresh rate array
     refreshRateArray = ones(handles.acqSettings.refreshRateFrames,1,'uint32');
        
-    % Store guidata, Start the camera
+    % Store guidata, wait until mirror has moved, start the camera
     guidata(hObject,handles);
+    pause(handles.acqSettings.mirrorFlipTime - toc);
     start(handles.vid); disp('Starting Capture')
     
     % Run until number of capture frames have been acquired
