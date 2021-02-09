@@ -22,9 +22,9 @@ acqSettings.centerY = true;
 acqSettings.xOffset = int64(0); % initial xy offsets are overwritten on startup
 acqSettings.yOffset = int64(0);
 acqSettings.xSize = int64(1540); % should be multiples of 10 for 10-tap CL transfer
-acqSettings.ySize = int64(1088);
+acqSettings.ySize = int64(512);
 acqSettings.xDisplaySize = int64(1024);
-acqSettings.yDisplaySize = int64(1024);
+acqSettings.yDisplaySize = int64(512);
 acqSettings.xDisplayActualSize = 768;
 acqSettings.yDisplayActualSize = 768;
 
@@ -52,7 +52,7 @@ acqSettings.numCaptureFrames = 1024;
 acqSettings.maxMemMB = 8*1024; % 8 GB
 
 % Exposure time (in microseconds)
-acqSettings.exposureTime = 3200;
+acqSettings.exposureTime = 1200;
 
 % Mirror flip time (measured 150 ms, but round up to be safe)
 acqSettings.mirrorFlipTime = 0.2; % sec

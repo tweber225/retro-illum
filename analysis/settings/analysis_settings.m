@@ -9,11 +9,11 @@ analysisSettings.maxSmoothingSpan = 15;
 % Registration parameters
 analysisSettings.regXCrop = 1024;
 analysisSettings.regYCrop = 1024;
-analysisSettings.MAOrder = 8; % MA: moving average
+analysisSettings.MAOrder = 5; % MA: moving average
 analysisSettings.MARegFramesPerChunk = 64;
 analysisSettings.maxRho = .5; % Normalized parameters for circularly-symmetric bandpass of cross power spectrum
 analysisSettings.minRho = 0.01;
 analysisSettings.maxShiftPerFrame = 10;
 
 % Saving parameters
-analysisSettings.decimationFactor = 2;
+analysisSettings.decimationFactor = 1;
