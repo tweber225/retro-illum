@@ -45,7 +45,7 @@ acqSettings.numCalibrationFrames = 256;
 acqSettings.filterSigma = 24;
 
 % Number of frames to capture
-acqSettings.numCaptureFrames = 320; % needs to be >= number of averaged calibration frames
+acqSettings.numCaptureFrames = 512; % needs to be >= number of averaged calibration frames
 
 % Max memory to allocate in MB
 acqSettings.maxMemMB = 8*1024; % 8 GB
