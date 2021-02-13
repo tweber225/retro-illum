@@ -28,3 +28,6 @@ handles.acqSettings.gain = handles.baslerCam.Parameters.Item('GainRaw').GetValue
 handles.baslerCam.Parameters.Item('ExposureTimeAbs').SetValue(handles.acqSettings.exposureTime);
 handles.acqSettings.exposureTime = handles.baslerCam.Parameters.Item('ExposureTimeAbs').GetValue;
 
+% Set GPIO to exposure active & invert line
+handles.baslerCam.Parameters.Item('LineSource').SetValue('ExposureActive');
+handles.baslerCam.Parameters.Item('LineInverter').SetValue(true);

@@ -24,7 +24,11 @@ set(handles.textExposureTime,'String',num2str(handles.acqSettings.exposureTime))
 % Update timing display
 handles.acqSettings.resultingFrameRate = handles.baslerCam.Parameters.Item('ResultingFrameRateAbs').GetValue;
 handles.acqSettings.sensorReadoutTime = handles.baslerCam.Parameters.Item('ReadoutTimeAbs').GetValue;
+handles.acqSettings.volumeRate = handles.acqSettings.resultingFrameRate/handles.acqSettings.numFramesPerVolume;
 handles = update_displays(handles); 
+
+% Update function generator with new frequency (to match volume rate)
+update_function_generator(handles.fg,handles.acqSettings.volumeRate,handles.acqSettings.fgAmp);
 
 % Pass data to GUI
 guidata(hObject,handles);

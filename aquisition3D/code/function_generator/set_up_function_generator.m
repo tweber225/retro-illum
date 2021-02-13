@@ -1,5 +1,5 @@
-function fgHandle = set_up_function_generator(fgCommPort,fgBaudRate)
-serialPauseTime = .005;
+function fgHandle = set_up_function_generator(fgCommPort,fgBaudRate,freq,amp)
+serialPauseTime = .05;
 
 % Check inputs
 if ~strcmp(class(fgCommPort),'char')
@@ -20,24 +20,32 @@ configureTerminator(fgHandle,'CR/LF');pause(serialPauseTime);
 % Just in case: turn off both channels
 writeline(fgHandle,':w20=0,0.');pause(serialPauseTime);
 
-% Make positive-only ramp function and set as arbitrary wave #1
+% Make positive-only sinusoid
 waveformLength = 2048;
-arbWave = 1023*linspace(0,2,waveformLength)' + 2048;
-arbWaveStr = sprintf('%.0f,',arbWave);
-writeline(fgHandle,[':a01=' arbWaveStr]);pause(2);
+phaseShift = -80;
+arbWave = 1023*sin(2*pi*(1:waveformLength)'/waveformLength);
+
+% Shift minimum point to first index point & raise waveform to be >= 0
+[minVal,minIdx] = min(arbWave);
+shiftedWave = circshift(arbWave,-minIdx-phaseShift) - minVal + 2048;
+
+% Set as arbitrary wave #1
+arbWaveStr = sprintf('%.0f,',shiftedWave);
+writeline(fgHandle,[':a01=' arbWaveStr]);pause(.5);
 
 % Switch to arbitrary wave 1
 writeline(fgHandle,':w21=101.');pause(serialPauseTime);
 
 % Set frequency
-f = 2*51.6476;
-fStr = num2str(round(f*100));
+fStr = num2str(round(freq*100));
 writeline(fgHandle,[':w23=' fStr ',0.']);pause(serialPauseTime);
 
-% Set amplitude ([sic], acutally this is Vpp = 2*amplitude)
-a = 5;
-aStr = num2str(round(a*1000));
+% Set amplitude
+aStr = num2str(round(amp*1000));
 writeline(fgHandle,[':w25=' aStr '.']);pause(serialPauseTime);
+
+% Set offset (0V = 1000)
+writeline(fgHandle,':w27=1000.');pause(serialPauseTime);
 
 % Set up triggering
 % Switch to Modulation Mode panel -> Function:BST (burst) CH1
@@ -49,3 +57,4 @@ writeline(fgHandle,':w50=3.');pause(serialPauseTime);
 % Set # (cycles) to 1 (per trigger), automatically turns ON
 writeline(fgHandle,':w49=1.');pause(serialPauseTime);
 
+disp('Function generator opened')

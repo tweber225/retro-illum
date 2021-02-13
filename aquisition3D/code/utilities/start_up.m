@@ -22,11 +22,17 @@ handles = set_GUI_options(handles);
 % Get derived parameters
 handles.acqSettings.resultingFrameRate = handles.baslerCam.Parameters.Item('ResultingFrameRateAbs').GetValue;
 handles.acqSettings.sensorReadoutTime = handles.baslerCam.Parameters.Item('ReadoutTimeAbs').GetValue;
-handles.xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2); % Cropping of displayed frames
-handles.yCr = (-(handles.acqSettings.yDisplaySize/2 -1):(handles.acqSettings.yDisplaySize/2)) + (handles.acqSettings.ySize/2);
+handles.acqSettings.volumeRate = handles.acqSettings.resultingFrameRate/acqSettings.numFramesPerVolume;
+handles.xCr = (-(handles.acqSettings.xDisplaySize/2 -1):(handles.acqSettings.xDisplaySize/2)) + (handles.acqSettings.xSize/2); % Center the crop in X
+handles.yCr = (handles.acqSettings.ySize-handles.acqSettings.yDisplaySize+1):(handles.acqSettings.ySize); % Crop to bottom in Y
 
 % Update displays
 handles = update_displays(handles);
+
+% Initialize function generator (now that framerate is available)
+handles.fg = set_up_function_generator(handles.acqSettings.fgComPort, ...
+    handles.acqSettings.fgBaudRate, handles.acqSettings.volumeRate, ...
+    handles.acqSettings.fgAmp);
 
 % Render blank frame on image axes
 blankFrame = zeros(handles.acqSettings.yDisplaySize,handles.acqSettings.xDisplaySize,'uint8');
@@ -50,8 +56,6 @@ GUIPath = strsplit(mfilename('fullpath'),filesep);
 GUIPath = strjoin(GUIPath(1:(end-3)),filesep);
 handles.acqSettings.GUIPath = GUIPath; 
 
-% Make the thumbnail options structure
-handles.thumbOpts = make_thumb_opts_struct(acqSettings);
 
 
 

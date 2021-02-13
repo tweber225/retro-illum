@@ -323,7 +323,8 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         mkdir(handles.acqSettings.captureDirectory);
         
         % Save raw stack, calibration, thumbnail preview       
-        save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,handles.thumbOpts);
+        %save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,handles.thumbOpts);
+        save_tiff_stack([handles.acqSettings.captureDirectory filesep 'test_stack.tif'],squeeze(captureFrames))
         
         % Save settings used during capture
         save_settings(handles.acqSettings);

@@ -41,11 +41,12 @@ varargout{1} = handles.output;
 %% CLOSING FUNCTION
 function retroIllumAcqGUI_CloseRequestFcn(hObject, eventdata, handles)
 try
-    delete(handles.vid) % Close camera on frame grabbe
+    delete(handles.vid) % Close camera on frame grabber
     handles.baslerCam.Close % Close camera on Basler SDK
     delete(handles.daq) % Close DAQ session
     clear handles.src handles.vid handles.baslerCam
     disp('Camera closed')
+    close_function_generator(handles.fg);
     delete(gcp('nocreate'))
     delete(hObject); % Close figure
     
@@ -73,7 +74,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
     
     % Make the "donut" cross-power spectrum filter
-    donutFiltGPU = make_donut_filt(handles.acqSettings.xDisplaySize,handles.acqSettings.xDisplaySize,.01,.9);
+    donutFiltGPU = make_donut_filt(handles.acqSettings.yDisplaySize,handles.acqSettings.xDisplaySize,.01,.9);
 
     % Allocate refresh rate array
     refreshRateArray = 1024*ones(handles.acqSettings.refreshRateFrames,1,'uint32');
@@ -96,13 +97,14 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
         % Take a peek at most recent data and flush the rest
         img = peekdata(handles.vid,handles.acqSettings.displayFrameAverage);
         flushdata(handles.vid);
-        
+                
         % Show image
         cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
-        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,handles.acqSettings.filterSigma,...
-            handles.acqSettings.yDisplayActualSize,handles.acqSettings.xDisplayActualSize);
+        displayImg = reg3d_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,...
+            handles.acqSettings.filterSigma,handles.acqSettings.numFramesPerVolume,...
+            handles.acqSettings.displayFrame);
         set(handles.imgHandle,'CData',displayImg)
-
+        
         % Update histograms
         handles.chan1Hist.Data = img(handles.yCr,handles.xCr,1,1); % only show first frame
 
@@ -216,7 +218,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on
     outputSingleScan(handles.daq,[false true]);
     
     % Average the frame sum register in single precision
-    handles.calibFrame = single(frameSumRegister)./handles.acqSettings.numCalibrationFrames;
+    handles.calibFrame = eps(single(0)) + single(frameSumRegister)./handles.acqSettings.numCalibrationFrames;
     
     % Switch back label
     if get(hObject,'Value') == 1 % Then we didn't abort
@@ -258,10 +260,11 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     
     % Transfer cropped calibration to GPU, make donut x-power spec filter
     cropCalibGPU = gpuArray(handles.calibFrame(handles.yCr,handles.xCr));
-    donutFiltGPU = make_donut_filt(handles.acqSettings.xDisplaySize,handles.acqSettings.xDisplaySize,.05,.95);
+    donutFiltGPU = make_donut_filt(handles.acqSettings.yDisplaySize,handles.acqSettings.xDisplaySize,.05,.95);
 
-    % Allocate refresh rate array
+    % Allocate refresh rate array & frames shown counter
     refreshRateArray = ones(handles.acqSettings.refreshRateFrames,1,'uint32');
+    framesShown = zeros(1,'uint32'); % please don't attempt more than 2^32-1 frames
        
     % Store guidata, wait until mirror has moved, start the camera
     guidata(hObject,handles);
@@ -272,17 +275,19 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     while handles.vid.FramesAvailable < handles.acqSettings.numCaptureFrames
         % Check that enough frames are available
         frameIdx = handles.vid.FramesAvailable;
-        if frameIdx < handles.acqSettings.displayFrameAverage
+        if frameIdx < (handles.acqSettings.displayFrameAverage*(framesShown+1))
             continue
         end
         
         % Peek at the most recent frames up to display frame average #
         img = peekdata(handles.vid,handles.acqSettings.displayFrameAverage);
+        %size(img)
 
         % Show most recent images (registed and averaged on GPU)
         cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
-        displayImg = reg_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU, handles.acqSettings.filterSigma, ...
-            handles.acqSettings.yDisplayActualSize,handles.acqSettings.xDisplayActualSize);
+        displayImg = reg3d_scale_img_8bit(cropImgGPU,cropCalibGPU,donutFiltGPU,...
+            handles.acqSettings.filterSigma,handles.acqSettings.numFramesPerVolume,...
+            handles.acqSettings.displayFrame);
         set(handles.imgHandle,'CData',displayImg(:,:));
         
         % Update histograms
@@ -299,6 +304,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         set(handles.textDisplayFrameStats,'String',str);
         
         drawnow % Interrupt point, necessary for img update & breaking loop
+        framesShown = framesShown+1; % advance the counter
         handles = guidata(hObject);
         
         if get(hObject,'Value') == 0
@@ -322,8 +328,14 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         handles.acqSettings.captureDirectory = [handles.acqSettings.dataPath filesep datestr(now,'yyyymmdd') filesep datestr(now,'HHMMSSFFF')];
         mkdir(handles.acqSettings.captureDirectory);
         
-        % Save raw stack, calibration, thumbnail preview       
-        save_captured_image_stack(squeeze(captureFrames),handles.calibFrame,handles.acqSettings.captureDirectory,handles.thumbOpts);
+        % Save stack
+        orderedCapture = reorder_stack(squeeze(captureFrames),handles.acqSettings.numFramesPerVolume);
+        save_tiff_stack([handles.acqSettings.captureDirectory filesep 'test_stack.tif'],orderedCapture)
+        
+        % Save calibration file (if acquired)
+        if handles.acqSettings.calibrationAcquired
+            save_tiff_stack([handles.acqSettings.captureDirectory filesep 'calibration.tif'],single(handles.calibFrame));
+        end
         
         % Save settings used during capture
         save_settings(handles.acqSettings);
@@ -356,6 +368,9 @@ textNumCaptureFramesCallback(hObject,handles);
 function textNumDisplayFrameAverage_Callback(hObject, eventdata, handles)
 textNumDisplayFrameAverageCallback(hObject,handles);
 
+function textDisplayFrame_Callback(hObject, eventdata, handles)
+textDisplayFrameCallback(hObject,handles);
+
 function textFilterSigma_Callback(hObject, eventdata, handles)
 textFilterSigmaCallback(hObject,handles);
 
@@ -380,6 +395,10 @@ function textExposureTime_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+function textDisplayFrame_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 
 
@@ -400,7 +419,7 @@ elseif strcmp(eventdata.Key,'f4') % Toggle Capture button and run callback
     
 end
 
-% Individ. key press callback functions all call the main hot key function
+% Individual key press callback functions all call the main hot key function
 function retroIllumAcqGUI_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
 function buttonPreview_KeyPressFcn(hObject, eventdata, handles)
@@ -417,3 +436,8 @@ function textFilterSigma_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
 function textExposureTime_KeyPressFcn(hObject, eventdata, handles)
 hot_key_callback(eventdata,handles)
+
+
+
+
+

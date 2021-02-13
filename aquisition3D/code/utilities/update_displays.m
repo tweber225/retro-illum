@@ -2,7 +2,9 @@ function handles = update_displays(handles)
 
 
 % Update frame period and frequency
-str = ['Frame Period: ' num2str(round(100000/handles.acqSettings.resultingFrameRate)/100) ' ms' newline 'Frame Rate: ' num2str(handles.acqSettings.resultingFrameRate) ' fps'];
+str = ['Frame Period: ' num2str(round(100000/handles.acqSettings.resultingFrameRate)/100) ' ms' newline ...
+    'Frame Rate: ' num2str(handles.acqSettings.resultingFrameRate) ' fps' newline ...
+    'Volume Rate: ' num2str(handles.acqSettings.volumeRate) ' vps'];
 set(handles.textDisplayFrameTime,'String',str)
 
 
