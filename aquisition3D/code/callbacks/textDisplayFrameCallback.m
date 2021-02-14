@@ -1,5 +1,6 @@
 function textDisplayFrameCallback(hObject,handles)
 
+
 % Get new value
 newVal = round(str2double(get(handles.textDisplayFrame,'String')));
 

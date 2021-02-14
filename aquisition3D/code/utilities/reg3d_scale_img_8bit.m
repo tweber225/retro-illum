@@ -10,6 +10,7 @@ numFrames = single(size(correctedImg,4));
 
 % Shift frames to find "dark frame" in stack
 avgFrameSignal = sum(correctedImg,[1 2]);
+%avgFrameSignal = max(correctedImg,[],[1 2]);
 [~,darkFrameIdx] = min(avgFrameSignal(:));
 correctedImg = circshift(correctedImg,[0 0 0 -darkFrameIdx]);
 

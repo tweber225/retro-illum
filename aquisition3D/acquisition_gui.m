@@ -264,7 +264,7 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
 
     % Allocate refresh rate array & frames shown counter
     refreshRateArray = ones(handles.acqSettings.refreshRateFrames,1,'uint32');
-    framesShown = zeros(1,'uint32'); % please don't attempt more than 2^32-1 frames
+    oldFrameIdx = zeros(1,'uint16'); % please don't attempt more than 2^16-1 frames
        
     % Store guidata, wait until mirror has moved, start the camera
     guidata(hObject,handles);
@@ -274,14 +274,13 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
     % Run until number of capture frames have been acquired
     while handles.vid.FramesAvailable < handles.acqSettings.numCaptureFrames
         % Check that enough frames are available
-        frameIdx = handles.vid.FramesAvailable;
-        if frameIdx < (handles.acqSettings.displayFrameAverage*(framesShown+1))
+        newFrameIdx = handles.vid.FramesAvailable;
+        if (newFrameIdx - oldFrameIdx) < (handles.acqSettings.displayFrameAverage + 1) % add 1 extra frame for little buffer
             continue
         end
         
         % Peek at the most recent frames up to display frame average #
         img = peekdata(handles.vid,handles.acqSettings.displayFrameAverage);
-        %size(img)
 
         % Show most recent images (registed and averaged on GPU)
         cropImgGPU = gpuArray(img(handles.yCr,handles.xCr,1,:));
@@ -294,17 +293,17 @@ if get(hObject,'Value') == 1 % If the button has been pressed on...
         handles.chan1Hist.Data = img(handles.yCr,handles.xCr,1,1); % only most recent frame
         
         % Update button string with progress
-        set(hObject,'String',['Abort (' num2str(frameIdx) '/' num2str(handles.acqSettings.numCaptureFrames) ' acquired)']);
+        set(hObject,'String',['Abort (' num2str(newFrameIdx) '/' num2str(handles.acqSettings.numCaptureFrames) ' acquired)']);
         
         % Update frame stats
-        refreshRateArray(handles.acqSettings.refreshRateFrames) = frameIdx;
+        oldFrameIdx = newFrameIdx;
+        refreshRateArray(handles.acqSettings.refreshRateFrames) = newFrameIdx;
         currentRefreshRate = handles.acqSettings.resultingFrameRate/mean(diff(refreshRateArray),'double');
         refreshRateArray = circshift(refreshRateArray,-1);
         str = ['Refresh rate: ' num2str(round(10*currentRefreshRate)/10) ' Hz'];
         set(handles.textDisplayFrameStats,'String',str);
         
         drawnow % Interrupt point, necessary for img update & breaking loop
-        framesShown = framesShown+1; % advance the counter
         handles = guidata(hObject);
         
         if get(hObject,'Value') == 0

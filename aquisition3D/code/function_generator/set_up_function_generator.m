@@ -23,11 +23,11 @@ writeline(fgHandle,':w20=0,0.');pause(serialPauseTime);
 % Make positive-only sinusoid
 waveformLength = 2048;
 phaseShift = -80;
-arbWave = 1023*sin(2*pi*(1:waveformLength)'/waveformLength);
+arbWave = 1000*sin(2*pi*(1:waveformLength)'/waveformLength);
 
 % Shift minimum point to first index point & raise waveform to be >= 0
 [minVal,minIdx] = min(arbWave);
-shiftedWave = circshift(arbWave,-minIdx-phaseShift) - minVal + 2048;
+shiftedWave = circshift(arbWave,-minIdx-phaseShift) - minVal + 2048+10;
 
 % Set as arbitrary wave #1
 arbWaveStr = sprintf('%.0f,',shiftedWave);
@@ -44,8 +44,8 @@ writeline(fgHandle,[':w23=' fStr ',0.']);pause(serialPauseTime);
 aStr = num2str(round(amp*1000));
 writeline(fgHandle,[':w25=' aStr '.']);pause(serialPauseTime);
 
-% Set offset (0V = 1000)
-writeline(fgHandle,':w27=1000.');pause(serialPauseTime);
+% Set offset (0V = 1000, give a little extra to avoid hitting bottom)
+writeline(fgHandle,':w27=1020.');pause(serialPauseTime);
 
 % Set up triggering
 % Switch to Modulation Mode panel -> Function:BST (burst) CH1

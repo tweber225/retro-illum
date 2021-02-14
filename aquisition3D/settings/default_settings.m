@@ -70,7 +70,7 @@ acqSettings.displayFrame = 5;
 % Function generator parameters
 acqSettings.fgComPort = 'COM5';
 acqSettings.fgBaudRate = 115200;
-acqSettings.fgAmp = 10;  % technically Vpp, so half this for real amplitude
+acqSettings.fgAmp = 9.8;  % technically Vpp, so half this for real amplitude
 
 
 

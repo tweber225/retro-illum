@@ -3,6 +3,7 @@ function stack = reorder_stack(stack,numFramesPerVol)
 
 % Find min in the first set of frames
 meanStack = mean(stack(:,:,1:numFramesPerVol),[1 2]);
+%meanStack = max(stack(:,:,1:numFramesPerVol),[],[1 2]);
 [~,minIdx] = min(meanStack(:));
 
 % Shift whole stack up, drop the last set of frames
@@ -13,7 +14,8 @@ stack = stack(:,:,1:end-numFramesPerVol);
 stack = reshape(stack,[size(stack,1),size(stack,2),numFramesPerVol/2,size(stack,3)*2/numFramesPerVol]);
 
 % Flip the even-numbered volumes
-stack(:,:,:,2:2:end) = flip(stack(:,:,:,2:2:end),3);
+%stack(:,:,:,2:2:end) = flip(stack(:,:,:,2:2:end),3);
+stack = stack(:,:,:,1:2:end); % temp: just take one direction
 
 % Reshape back into big tiff stack
 stack = reshape(stack,[size(stack,1),size(stack,2),size(stack,3)*size(stack,4)]);
