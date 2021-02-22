@@ -1,3 +1,5 @@
+recordMongtageInProgress = true;
+
 % Add subfolders to path
 analysisPath = strsplit(mfilename('fullpath'),filesep); % Get full path
 analysisPath = strjoin(analysisPath(1:(end-1)),filesep); % Strip this file's name
@@ -30,7 +32,9 @@ hStackCorr = single(hStack1)./calib;
 hStackCorr = hStackCorr(9:520,5:516,2:7,:);
 
 % Subtract off mean value
-hStackCorr = hStackCorr - imgaussfilt(hStackCorr,100);
+for tIdx = 1:size(hStackCorr,4)
+    hStackCorr(:,:,:,tIdx) = hStackCorr(:,:,:,tIdx) - imgaussfilt(hStackCorr(:,:,:,tIdx),100);
+end
 
 % Allocate space for a volume coverage map (to track volume registered to
 % specific place)
@@ -45,6 +49,8 @@ coverageVol = magnify_about_point(coverageVol,1+linspace(-1,1,size(hStackCorr,3)
 originalHStackSize = size(hStackCorr(:,:,:,1));
 hStackCorr = padarray(hStackCorr,originalHStackSize/2,0,'both');
 coverageVol = padarray(coverageVol,originalHStackSize/2,0,'both');
+
+% Take the single-volume coverage map, store it as variable "singleVolCoverage"
 singleVolCoverage = coverageVol;
 
 % Compute 3D Fourier Transform of each image stack
@@ -54,7 +60,7 @@ spectra = fft3(hStackCorr);
 % Settings
 wl = .850;
 NA = .4;
-filterThreshold = 10000;
+filterThreshold = 10000; % factor to play with
 dz = 6;
 pixSize = 5.5/8.8;
 
@@ -78,10 +84,17 @@ sumStack = hStackCorr(:,:,:,1);
 shiftAmounts = zeros(size(hStackCorr,4),3);
 XCPeakVals = zeros(size(hStackCorr,4),1);
 
+if recordMongtageInProgress
+    montageInProgress = zeros(size(sumStack,1),size(sumStack,2),'single');
+end
+
 % Cross correlate to growing mosaic with each subsequent volume
 for tIdx = 2:size(hStackCorr,4)
     % Calculate the new "average" stack
     avgStack = sumStack./(coverageVol+eps);
+    if recordMongtageInProgress
+        montageInProgress(:,:,tIdx-1) = avgStack(:,:,8);
+    end
     
     % Perform frequency-domain cross correlation and upsample 
     XPowSpec = fft3(avgStack).*conj(spectra(:,:,:,tIdx));
@@ -105,6 +118,8 @@ for tIdx = 2:size(hStackCorr,4)
     imagesc(avgStack(:,:,8));axis equal;colormap gray; title(num2str(tIdx))
     drawnow
     
+
+    
     % Show cross-correlation
 %     if tIdx == 32
 %         imagesc(XC(yPk-15:yPk+15,xPk-15:xPk+15,zPk));axis equal
@@ -116,3 +131,24 @@ end
 
 % Calculate one last average stack
 avgStack = sumStack./(coverageVol+eps);
+montageInProgress(:,:,tIdx) = avgStack(:,:,8);
+
+return
+
+%% Record results
+if recordMongtageInProgress
+    montageInProgress_8bit = circshift(montageInProgress,[0 -100 0]) - min(montageInProgress(:));
+    montageInProgress_8bit = uint8(255*montageInProgress_8bit./max(montageInProgress_8bit(:)));
+    montageInProgress_8bit(circshift(montageInProgress,[0 -100 0]) == 0) = 255; % Set all the background pixels to white
+    save_tiff_stack('growing_montage.tif',montageInProgress_8bit);
+end
+
+%%
+montage3D_8bit = circshift(avgStack,[0 -100 0]) - min(avgStack(:));
+montage3D_8bit = uint8(255*montage3D_8bit./max(montage3D_8bit(:)));
+montage3D_8bit(circshift(sumStack == 0,[0 -100 0])) = 255;
+save_tiff_stack('finished_montage.tif',montage3D_8bit);
+
+
+
+
